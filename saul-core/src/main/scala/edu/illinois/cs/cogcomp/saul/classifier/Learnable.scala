@@ -1,6 +1,6 @@
 package edu.illinois.cs.cogcomp.saul.classifier
 
-import java.io.File
+import java.io.{ File, PrintWriter }
 import java.net.URL
 
 import edu.illinois.cs.cogcomp.core.io.IOUtils
@@ -369,6 +369,46 @@ abstract class Learnable[T <: AnyRef](val node: Node[T], val parameters: Paramet
 
   def using(properties: List[Property[T]]): List[Property[T]] = {
     using(properties: _*)
+  }
+
+  /** This function would print all the input features and their corresponding output label on disk, in
+    * ARFF format: http://www.cs.waikato.ac.nz/ml/weka/arff.html
+    */
+  def printAllFeatures(location: String) = {
+    // one time dry run, to add all the lexicon
+    node.getAllInstances.foreach { instance => this.classifier.getExampleArray(instance, true) }
+    logger.info("Feature length: " + this.classifier.getPrunedLexiconSize)
+    printFeatures(location: String, train = true)
+    printFeatures(location: String, train = false)
+  }
+
+  /* this would print the feature values on disk */
+  private def printFeatures(location: String, train: Boolean): Unit = {
+    val pw = new PrintWriter(new File(s"$location/outputFeatures_${if (train) "train" else "test"}.arff"))
+    val featureLength = this.classifier.getPrunedLexiconSize
+
+    pw.write("@RELATION EssentialTerms\n")
+    (0 until featureLength).foreach { idx => pw.write(s"@ATTRIBUTE f$idx NUMERIC\n") }
+    pw.write("@ATTRIBUTE class {IMPORTANT, NOT-IMPORTANT}\n")
+    pw.write("@DATA\n")
+
+    val examples = if (train) node.trainingSet else node.testingSet
+    examples.foreach { cons =>
+      val out = this.classifier.getExampleArray(cons, true)
+      val intArray = out(0).asInstanceOf[Array[Int]].toList
+      val doubleArray = out(1).asInstanceOf[Array[Double]].toList
+
+      pw.write("{")
+      val featureValues = intArray.zip(doubleArray).groupBy { _._1 }.map { _._2.head }.toList. // remove the repeated features
+        filter { case (ind, value) => value != 0.0 }. // drop zero features
+        sortBy { case (ind, value) => ind }.
+        map {
+          case (ind, value) => ind + " " + (if (value == 1.0) "1" else value) // print feature as integer if it is 1.0
+        }.mkString(", ")
+      pw.write(featureValues)
+      pw.write(", " + featureLength + " " + getLabeler.discreteValue(cons) + "}\n")
+    }
+    pw.close()
   }
 
   // TODO Move the window properties out of Learner class.
