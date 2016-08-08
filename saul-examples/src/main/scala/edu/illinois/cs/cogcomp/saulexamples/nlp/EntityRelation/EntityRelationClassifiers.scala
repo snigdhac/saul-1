@@ -17,14 +17,14 @@ object EntityRelationClassifiers {
   object OrganizationClassifier extends Learnable(tokens) {
     def label: Property[ConllRawToken] = entityType is "Org"
     override lazy val classifier = new SparsePerceptron()
-    override def feature = using(word, windowWithin[ConllRawSentence](EntityRelationDataModel, -2, 2, List(pos)), phrase,
+    override def feature = using(word, tokensWithinWindowPos, phrase,
       containsSubPhraseMent, containsSubPhraseIng, wordLen)
     // The gazetteer properties are temporarily removed: containsInPersonList, containsInCityList
   }
 
   object PersonClassifier extends Learnable(tokens) {
     def label: Property[ConllRawToken] = entityType is "Peop"
-    override def feature = using(word, windowWithin[ConllRawSentence](EntityRelationDataModel, -2, 2, List(pos)), phrase,
+    override def feature = using(word, tokensWithinWindowPos, phrase,
       containsSubPhraseMent, containsSubPhraseIng, wordLen)
     override lazy val classifier = new SparsePerceptron()
     // The gazetteer properties are temporarily removed: containsInPersonList, containsInCityList
@@ -32,7 +32,7 @@ object EntityRelationClassifiers {
 
   object LocationClassifier extends Learnable(tokens) {
     def label: Property[ConllRawToken] = entityType is "Loc"
-    override def feature = using(word, windowWithin[ConllRawSentence](EntityRelationDataModel, -2, 2, List(pos)), phrase, containsSubPhraseMent,
+    override def feature = using(word, tokensWithinWindowPos, phrase, containsSubPhraseMent,
       containsSubPhraseIng, wordLen)
     override lazy val classifier = new SparsePerceptron()
     // The gazetteer properties are temporarily removed: containsInPersonList, containsInCityList
@@ -41,13 +41,13 @@ object EntityRelationClassifiers {
   /** independent relation classifiers */
   object WorksForClassifier extends Learnable(pairs) {
     def label: Property[ConllRelation] = relationType is "Work_For"
-    override def feature = using(relFeature, relPos)
+    override def feature = using(relFeature, tokensWithinWindowRelPos)
     override lazy val classifier = new SparsePerceptron()
   }
 
   object LivesInClassifier extends Learnable(pairs) {
     def label: Property[ConllRelation] = relationType is "Live_In"
-    override def feature = using(relFeature, relPos)
+    override def feature = using(relFeature, tokensWithinWindowRelPos)
     override lazy val classifier = new SparsePerceptron()
   }
 
@@ -64,13 +64,13 @@ object EntityRelationClassifiers {
   /** relation pipeline classifiers */
   object WorksForClassifierPipeline extends Learnable(pairs) {
     override def label: Property[ConllRelation] = relationType is "Work_For"
-    override def feature = using(relFeature, relPos, entityPrediction)
+    override def feature = using(relFeature, tokensWithinWindowRelPos, entityPrediction)
     override lazy val classifier = new SparsePerceptron()
   }
 
   object LivesInClassifierPipeline extends Learnable(pairs) {
     override def label: Property[ConllRelation] = relationType is "Live_In"
-    override def feature = using(relFeature, relPos, entityPrediction)
+    override def feature = using(relFeature, tokensWithinWindowRelPos, entityPrediction)
     override lazy val classifier = new SparsePerceptron()
   }
 }

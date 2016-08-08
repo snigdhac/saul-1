@@ -51,4 +51,16 @@ object EntityRelationSensors {
   def relationToSecondArg_MatchingSensor(r: ConllRelation, t: ConllRawToken): Boolean = {
     r.sentId.equals(t.sentId) && r.e2.wordId == t.wordId
   }
+
+  def getTokenBefore(t: ConllRawToken): ConllRawToken = {
+    val indexOpt = t.s.sentTokens.asScala.zipWithIndex.collectFirst { case (item, idx) if item == t => idx }
+    require(indexOpt.isDefined, "ERROR: the token not found in the sentence!")
+    t.s.sentTokens.get(Math.min(indexOpt.get - 1, 0))
+  }
+
+  def getTokenAfter(t: ConllRawToken): ConllRawToken = {
+    val indexOpt = t.s.sentTokens.asScala.zipWithIndex.collectFirst { case (item, idx) if item == t => idx }
+    require(indexOpt.isDefined, "ERROR: the token not found in the sentence!")
+    t.s.sentTokens.get(Math.min(indexOpt.get + 1, t.s.sentTokens.size() - 1))
+  }
 }

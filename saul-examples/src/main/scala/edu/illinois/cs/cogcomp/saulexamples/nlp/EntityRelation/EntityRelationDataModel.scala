@@ -8,11 +8,10 @@ package edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation
 
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saulexamples.EntityMentionRelation.datastruct.{ ConllRawSentence, ConllRawToken, ConllRelation }
-import edu.illinois.cs.cogcomp.saulexamples.EntityMentionRelation.reader.Conll04_Reader
 import edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation.EntityRelationClassifiers._
 import edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation.EntityRelationSensors._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 object EntityRelationDataModel extends DataModel {
 
@@ -82,19 +81,20 @@ object EntityRelationDataModel extends DataModel {
         Nil
   }
 
-  val relPos = property(pairs) {
-    rela: ConllRelation =>
-      val e1 = rela.e1
-      val e2 = rela.e2
+  val tokensWithinWindowPos = property(tokens) { t: ConllRawToken =>
+    val allSentenceTokens = t.s.sentTokens.asScala
+    val indexOpt = allSentenceTokens.zipWithIndex.collectFirst { case (item, idx) if item == t => idx }
+    require(indexOpt.isDefined, "ERROR: the token not found in the sentence!")
+    val minInd = Math.max(indexOpt.get - 2, 0)
+    val maxInd = Math.min(indexOpt.get + 2, allSentenceTokens.length - 1)
+    val tokensInWindow = allSentenceTokens.slice(minInd, maxInd)
+    tokensInWindow.map(pos(_)).toList
+  }
 
-      this.tokens.getWithWindow(e1, -2, 2, _.sentId).zipWithIndex.map {
-        case (Some(t), idx) => s"left-$idx-pos-${t.POS} "
-        case (None, idx) => s"left-$idx-pos-EMPTY "
-      } ++
-        this.tokens.getWithWindow(e2, -2, 2, _.sentId).zipWithIndex.map {
-          case (Some(t), idx) => s"right-$idx-pos-${t.POS} "
-          case (None, idx) => s"right-$idx-pos-EMPTY} "
-        }
+  val tokensWithinWindowRelPos = property(pairs) { rela: ConllRelation =>
+    val e1 = rela.e1
+    val e2 = rela.e2
+    tokensWithinWindowPos(e1) ++ tokensWithinWindowPos(e2)
   }
 
   val entityPrediction = property[ConllRelation](pairs) {
