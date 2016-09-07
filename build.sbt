@@ -1,3 +1,6 @@
+import _root_.sbtrelease.ReleasePlugin.autoImport.ReleaseStep
+import _root_.sbtrelease.ReleasePlugin.autoImport._
+import _root_.sbtrelease.ReleaseStateTransformations._
 import de.heikoseeberger.sbtheader.HeaderPattern
 
 scalaVersion in ThisBuild := "2.11.7"
@@ -54,6 +57,19 @@ lazy val commonSettings = Seq(
   headers := Map(
     "scala" -> (HeaderPattern.cStyleBlockComment, headerMsg),
     "java" -> (HeaderPattern.cStyleBlockComment, headerMsg)
+  ),
+  releaseIgnoreUntrackedFiles := true,
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    inquireVersions,
+    runTest,
+    setReleaseVersion,
+    commitReleaseVersion,                   // performs the initial git checks
+    //tagRelease,
+    //publishArtifacts,                       // checks whether `publishTo` is properly set up
+    setNextVersion,
+    commitNextVersion//,
+    //pushChanges                             // checks that an upstream branch is properly configured
   )
 )
 
