@@ -78,7 +78,8 @@ lazy val root = (project in file(".")).
   settings(releaseSettings: _*).
   settings(
     publish := {},  // no publishing for the root
-    publishArtifact := false
+    publishArtifact := false,
+    publishTo := None
   ).aggregate(saulCore, saulExamples)
   .enablePlugins(AutomateHeaderPlugin)
 
