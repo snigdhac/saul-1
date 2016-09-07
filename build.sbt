@@ -75,13 +75,13 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = (project in file(".")).
-  settings(releaseSettings: _*).
   settings(
     publish := {},  // no publishing for the root
     publishArtifact := false,
     publishTo := None
   ).aggregate(saulCore, saulExamples)
   .enablePlugins(AutomateHeaderPlugin)
+  .settings(releaseSettings: _*)
 
 lazy val saulCore = (project in file("saul-core")).
   settings(commonSettings: _*).
