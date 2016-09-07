@@ -35,7 +35,7 @@ lazy val releaseSettings = Seq(
     setReleaseVersion,
     commitReleaseVersion,                   // performs the initial git checks
     //tagRelease,
-    publishArtifacts,                       // checks whether `publishTo` is properly set up
+    //publishArtifacts,                       // checks whether `publishTo` is properly set up
     releaseStepCommand("scaladoc.sh"),      //release the scalaDocs
     setNextVersion,
     commitNextVersion//,
