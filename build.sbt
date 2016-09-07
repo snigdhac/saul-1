@@ -75,6 +75,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = (project in file(".")).
+  settings(releaseSettings: _*).
   settings(
     publish := {} // no publishing for the root
   ).aggregate(saulCore, saulExamples)
