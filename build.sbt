@@ -21,6 +21,9 @@ lazy val saulUser = System.getenv("SAUL_USER")
 lazy val user = if(saulUser == null) System.getProperty("user.name") else saulUser
 lazy val keyFile = new java.io.File(Path.userHome.absolutePath + "/.ssh/id_rsa")
 
+lazy val scalaDoc = taskKey[Unit]("Execute the shell script for releasing our Scala doc")
+scalaDoc := { "scaladoc.sh" ! }
+
 lazy val docSettings = Seq(
   autoAPIMappings := true,
   apiURL := Some(url("http://cogcomp.cs.illinois.edu/software/doc/saul/")),
@@ -36,7 +39,7 @@ lazy val releaseSettings = Seq(
     commitReleaseVersion,                   // performs the initial git checks
     //tagRelease,
     //publishArtifacts,                       // checks whether `publishTo` is properly set up
-    releaseStepCommand("scaladoc.sh"),      //release the scalaDocs
+    releaseStepTask(scalaDoc),      //release the scalaDocs
     setNextVersion,
     commitNextVersion//,
     //pushChanges                             // checks that an upstream branch is properly configured
