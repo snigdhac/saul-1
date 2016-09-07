@@ -16,9 +16,10 @@ val headerMsg =  """/** This software is released under the University of Illino
                         |  */
                         |""".stripMargin
 
-lazy val root = (project in file(".")).
-  aggregate(saulCore, saulExamples)
-  .enablePlugins(AutomateHeaderPlugin)
+
+lazy val saulUser = System.getenv("SAUL_USER")
+lazy val user = if(saulUser == null) System.getProperty("user.name") else saulUser
+lazy val keyFile = new java.io.File(Path.userHome.absolutePath + "/.ssh/id_rsa")
 
 lazy val docSettings = Seq(
   autoAPIMappings := true,
@@ -26,9 +27,21 @@ lazy val docSettings = Seq(
   scalacOptions in Test ++= Seq("-Yrangepos")
 )
 
-lazy val saulUser = System.getenv("SAUL_USER")
-lazy val user = if(saulUser == null) System.getProperty("user.name") else saulUser
-lazy val keyFile = new java.io.File(Path.userHome.absolutePath + "/.ssh/id_rsa")
+lazy val releaseSetting = Seq(
+  releaseIgnoreUntrackedFiles := true,
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    inquireVersions,
+    runTest,
+    setReleaseVersion,
+    commitReleaseVersion,                   // performs the initial git checks
+    //tagRelease,
+    //publishArtifacts,                       // checks whether `publishTo` is properly set up
+    setNextVersion,
+    commitNextVersion//,
+    //pushChanges                             // checks that an upstream branch is properly configured
+  )
+)
 
 lazy val commonSettings = Seq(
   organization := ccgGroupId,
@@ -57,21 +70,13 @@ lazy val commonSettings = Seq(
   headers := Map(
     "scala" -> (HeaderPattern.cStyleBlockComment, headerMsg),
     "java" -> (HeaderPattern.cStyleBlockComment, headerMsg)
-  ),
-  releaseIgnoreUntrackedFiles := true,
-  releaseProcess := Seq[ReleaseStep](
-    checkSnapshotDependencies,
-    inquireVersions,
-    runTest,
-    setReleaseVersion,
-    commitReleaseVersion,                   // performs the initial git checks
-    //tagRelease,
-    //publishArtifacts,                       // checks whether `publishTo` is properly set up
-    setNextVersion,
-    commitNextVersion//,
-    //pushChanges                             // checks that an upstream branch is properly configured
   )
 )
+
+lazy val root = (project in file(".")).
+  aggregate(saulCore, saulExamples).
+  enablePlugins(AutomateHeaderPlugin).
+  settings(releaseSetting: _*)
 
 lazy val saulCore = (project in file("saul-core")).
   settings(commonSettings: _*).
