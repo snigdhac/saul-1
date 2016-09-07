@@ -32,7 +32,7 @@ lazy val releaseSetting = Seq(
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
-    runTest,
+    //runTest,
     setReleaseVersion,
     commitReleaseVersion,                   // performs the initial git checks
     //tagRelease,
