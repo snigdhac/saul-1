@@ -75,14 +75,15 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = (project in file(".")).
-  aggregate(saulCore, saulExamples).
-  enablePlugins(AutomateHeaderPlugin).
-  settings(releaseSettings: _*).
-  settings(publishSettings: _*)
+  settings(
+    publish := {} // no publishing for the root
+  ).aggregate(saulCore, saulExamples)
+  .enablePlugins(AutomateHeaderPlugin)
 
 lazy val saulCore = (project in file("saul-core")).
   settings(commonSettings: _*).
   settings(docSettings: _*).
+  settings(publishSettings: _*).
   settings(
     name := "saul",
     libraryDependencies ++= Seq(
@@ -92,6 +93,7 @@ lazy val saulCore = (project in file("saul-core")).
 
 lazy val saulExamples = (project in file("saul-examples")).
   settings(commonSettings: _*).
+  settings(publishSettings: _*).
   settings(
     name := "saul-examples",
     libraryDependencies ++= Seq(
