@@ -22,7 +22,7 @@ lazy val user = if(saulUser == null) System.getProperty("user.name") else saulUs
 lazy val keyFile = new java.io.File(Path.userHome.absolutePath + "/.ssh/id_rsa")
 
 lazy val scalaDoc = taskKey[Unit]("Execute the shell script for releasing our Scala doc")
-scalaDoc := { "scaladoc.sh" ! }
+scalaDoc := { "bash scaladoc.sh" ! }
 
 lazy val docSettings = Seq(
   autoAPIMappings := true,
