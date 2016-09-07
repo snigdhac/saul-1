@@ -14,7 +14,7 @@ addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.3")
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.1")
 
 // to use git directly inside sbt as well as using it for versioning
-// addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.8.5")
+addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.8.5")
 
 // The Play plugin
 addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.4.3")
