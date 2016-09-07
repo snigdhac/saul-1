@@ -36,6 +36,7 @@ lazy val releaseSettings = Seq(
     commitReleaseVersion,                   // performs the initial git checks
     //tagRelease,
     publishArtifacts,                       // checks whether `publishTo` is properly set up
+    releaseStepCommand("scaladoc.sh"),      //release the scalaDocs
     setNextVersion,
     commitNextVersion//,
     //pushChanges                             // checks that an upstream branch is properly configured
@@ -75,11 +76,6 @@ lazy val commonSettings = Seq(
 ) ++ publishSettings
 
 lazy val root = (project in file("."))
-  /*settings(
-    publish := {},  // no publishing for the root
-    publishArtifact := false,
-    publishTo := None
-  )*/
   .settings(commonSettings: _*)
   .settings(releaseSettings: _*)
   .aggregate(saulCore, saulExamples)
