@@ -72,7 +72,7 @@ lazy val commonSettings = Seq(
     "scala" -> (HeaderPattern.cStyleBlockComment, headerMsg),
     "java" -> (HeaderPattern.cStyleBlockComment, headerMsg)
   )
-)
+) ++ publishSettings
 
 lazy val root = (project in file(".")).
   settings(
@@ -86,7 +86,6 @@ lazy val root = (project in file(".")).
 lazy val saulCore = (project in file("saul-core")).
   settings(commonSettings: _*).
   settings(docSettings: _*).
-  settings(publishSettings: _*).
   settings(
     name := "saul",
     libraryDependencies ++= Seq(
@@ -96,7 +95,6 @@ lazy val saulCore = (project in file("saul-core")).
 
 lazy val saulExamples = (project in file("saul-examples")).
   settings(commonSettings: _*).
-  settings(publishSettings: _*).
   settings(
     name := "saul-examples",
     libraryDependencies ++= Seq(
