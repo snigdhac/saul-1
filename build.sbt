@@ -27,7 +27,7 @@ lazy val docSettings = Seq(
   scalacOptions in Test ++= Seq("-Yrangepos")
 )
 
-lazy val releaseSetting = Seq(
+lazy val releaseSettings = Seq(
   releaseIgnoreUntrackedFiles := true,
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
@@ -42,10 +42,18 @@ lazy val releaseSetting = Seq(
   )
 )
 
+lazy val publishSettings = Seq(
+  publishTo := Some(
+    Resolver.ssh(
+      "CogcompSoftwareRepo", "bilbo.cs.illinois.edu",
+      "/mounts/bilbo/disks/0/www/cogcomp/html/m2repo/") as (user, keyFile)
+  )
+  //isSnapshot := true // when releasing snapshot versions
+)
+
 lazy val commonSettings = Seq(
   organization := ccgGroupId,
   name := "saul-project",
-  version := "0.5",
   resolvers ++= Seq(
     Resolver.mavenLocal,
     "CogcompSoftware" at "http://cogcomp.cs.illinois.edu/m2repo/"
@@ -60,12 +68,6 @@ lazy val commonSettings = Seq(
     "ch.qos.logback" % "logback-classic" % "1.1.7"
   ),
   fork := true,
-  publishTo := Some(
-    Resolver.ssh(
-      "CogcompSoftwareRepo", "bilbo.cs.illinois.edu",
-      "/mounts/bilbo/disks/0/www/cogcomp/html/m2repo/") as (user, keyFile)
-  ),
-  isSnapshot := true,
   headers := Map(
     "scala" -> (HeaderPattern.cStyleBlockComment, headerMsg),
     "java" -> (HeaderPattern.cStyleBlockComment, headerMsg)
@@ -75,7 +77,8 @@ lazy val commonSettings = Seq(
 lazy val root = (project in file(".")).
   aggregate(saulCore, saulExamples).
   enablePlugins(AutomateHeaderPlugin).
-  settings(releaseSetting: _*)
+  settings(releaseSettings: _*).
+  settings(publishSettings: _*)
 
 lazy val saulCore = (project in file("saul-core")).
   settings(commonSettings: _*).
