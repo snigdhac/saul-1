@@ -1,7 +1,5 @@
-import _root_.sbtrelease.ReleasePlugin.autoImport.ReleaseStep
-import _root_.sbtrelease.ReleasePlugin.autoImport._
-import _root_.sbtrelease.ReleaseStateTransformations._
 import de.heikoseeberger.sbtheader.HeaderPattern
+import sbtrelease.ReleaseStateTransformations._
 
 scalaVersion in ThisBuild := "2.11.7"
 
@@ -18,7 +16,7 @@ val headerMsg =  """/** This software is released under the University of Illino
 
 
 lazy val saulUser = System.getenv("SAUL_USER")
-lazy val user = if(saulUser == null) System.getProperty("user.name") else saulUser
+lazy val user = if (saulUser == null) System.getProperty("user.name") else saulUser
 lazy val keyFile = new java.io.File(Path.userHome.absolutePath + "/.ssh/id_rsa")
 
 lazy val scalaDoc = taskKey[Unit]("Execute the shell script for releasing our Scala doc")
