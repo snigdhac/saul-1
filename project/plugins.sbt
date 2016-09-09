@@ -10,9 +10,6 @@ addSbtPlugin("de.heikoseeberger" % "sbt-header" % "1.6.0")
 // to bump the version numbers and automate the release process
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.3")
 
-// assembly plugin to create fat jars
-addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.1")
-
 // to use git directly inside sbt as well as using it for versioning
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.8.5")
 
