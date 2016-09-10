@@ -28,13 +28,13 @@ public class Conll04_Reader implements Parser {
     private int currentTokenId;
     private int currentPairId;
 
-    public Conll04_Reader(String filename, String ty) {
+    public Conll04_Reader(String filename, String type, int sentenceOffset) {
         instances = new Vector<>();
         relations = new Vector<>();
         sentences = new Vector<>();
         entityLabels = new String[0];
         relLabels = new String[0];
-        type_ = ty;
+        type_ = type;
         List<String> lines = null;
         try {
             lines = LineIO.read(filename);
@@ -47,12 +47,12 @@ public class Conll04_Reader implements Parser {
         ConllRawToken c;
 
         ConllRelation r;
-        int currSentId = 0;
+        int currSentId = sentenceOffset;
         boolean sentEnd = false;
         ConllRawSentence sent = new ConllRawSentence(currSentId);
 
-        ArrayList<String> entityal = new ArrayList<>();
-        ArrayList<String> relal = new ArrayList<>();
+        ArrayList<String> entityList = new ArrayList<>();
+        ArrayList<String> relationList = new ArrayList<>();
 
         int sentindex = 0;
         assert lines != null;
@@ -75,8 +75,8 @@ public class Conll04_Reader implements Parser {
                 r.relType = tokens[2];
                 relations.add(r);
                 sent.addRelations(r);
-                if (!relal.contains(tokens[2])) {
-                    relal.add(tokens[2]);
+                if (!relationList.contains(tokens[2])) {
+                    relationList.add(tokens[2]);
                 }
             } else {
                 if (sentEnd) {
@@ -97,16 +97,16 @@ public class Conll04_Reader implements Parser {
                 if (!tokens[1].trim().equals("O")) {
                     instances.add(c);
                     sent.setCurrentTokenAsEntity();
-                    if (!entityal.contains(tokens[1])) {
-                        entityal.add(tokens[1]);
+                    if (!entityList.contains(tokens[1])) {
+                        entityList.add(tokens[1]);
                     }
                 }
                 sentEnd = false;
             }
         }
 
-        entityLabels = entityal.toArray(entityLabels);
-        relLabels = relal.toArray(relLabels);
+        entityLabels = entityList.toArray(entityLabels);
+        relLabels = relationList.toArray(relLabels);
 
         for (int counter = 0; counter < relations.size(); counter++) {
             int sindex = relations.elementAt(counter).sentId;

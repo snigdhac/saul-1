@@ -20,16 +20,16 @@ object EntityRelationSensors {
   lazy val personGazetSensor = new GazeteerReader("gazeteer/known_maleFirst.lst", "Gaz:Person", true, true)
   personGazetSensor.addFile("gazeteer/known_femaleFirst.lst", true, true)
 
-  def readConllData(dir: String): (List[ConllRawSentence], List[ConllRelation], List[ConllRawToken]) = {
-    val reader = new Conll04_Reader(dir, "Token")
+  def readConllData(dir: String, sentenceIdOffset: Int = 0): (List[ConllRawSentence], List[ConllRelation], List[ConllRawToken]) = {
+    val reader = new Conll04_Reader(dir, "Token", sentenceIdOffset)
     val sentences = reader.sentences.asScala.toList
-    val tokens = sentences.flatMap { a => a.getEntitiesInSentence.asScala }
+    val tokens = sentences.flatMap(_.getEntitiesInSentence.asScala)
     (sentences, reader.relations.asScala.toList, tokens)
   }
 
   lazy val (sentencesAll, relationsAll, entitiesAll) = readConllData(path + "EntityMentionRelation/conll04.corp")
   lazy val (sentencesTrain, relationsTrain, entitiesTrain) = readConllData(path + "EntityMentionRelation/conll04_train.corp")
-  lazy val (sentencesTest, relationsTest, entitiesTest) = readConllData(path + "EntityMentionRelation/conll04_test.corp")
+  lazy val (sentencesTest, relationsTest, entitiesTest) = readConllData(path + "EntityMentionRelation/conll04_test.corp", sentencesTrain.length)
   lazy val (sentencesSmallSetTest, testRelationsSmallSetTest, entitiesSmallSetTest) = readConllData(resourcePath + "conll04-smallDocument.txt")
 
   def sentenceToRelation_GeneratingSensor(s: ConllRawSentence): List[ConllRelation] = {
