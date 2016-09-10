@@ -20,9 +20,6 @@ public class ConllEntityFeatureExtractor {
     Vector<GazeteerReader> gazets;
     public GazeteerReader locGazet, perGazet;
 
-    public ConllEntityFeatureExtractor() {
-    }
-
     public void addGazets(GazeteerReader g) {
         gazets.add(g);
     }
@@ -42,15 +39,15 @@ public class ConllEntityFeatureExtractor {
         features.put("LEN:" + ct.getLength(), 1.0);
         String[] allWords = ct.getWords(isLowerCase);
         GazeteerReader g;
-        for (int i = 0; i < allWords.length; i++) {
-            features.put("WORD:" + allWords[i], 1.0);
+        for (String allWord : allWords) {
+            features.put("WORD:" + allWord, 1.0);
         }
 
         ConllRawToken[] window = s.returnWindow(index, 2, 2);
         int id;
-        for (int i = 0; i < window.length; i++) {
-            id = window[i].wordId - index;
-            features.put("POS_WINDOW " + id + window[i].POS, 1.0);
+        for (ConllRawToken aWindow : window) {
+            id = aWindow.wordId - index;
+            features.put("POS_WINDOW " + id + aWindow.POS, 1.0);
         }
 
         if (containsSubPhrase("ing", ct.getWords(isLowerCase))) {
@@ -59,7 +56,6 @@ public class ConllEntityFeatureExtractor {
         if (containsSubPhrase("ment", ct.getWords(isLowerCase))) {
             features.put("Ment:", 1.0);
         }
-
 
         if (locGazet.isContainedIn(ct)) {
             features.put("LOC:", 1.0);
@@ -86,7 +82,6 @@ public class ConllEntityFeatureExtractor {
         ConllRawToken ct2 = s.sentTokens.elementAt(index2);
         String lPrefix = "L", rPrefix = "R";
 
-
         features.put(lPrefix + "PHRASE:" + ct1.getPhrase(isLowerCase), 1.0);
         features.put(rPrefix + "PHRASE:" + ct2.getPhrase(isLowerCase), 1.0);
         features.put(lPrefix + "P_LEN:" + ct1.splitWords.length, 1.0);
@@ -97,14 +92,14 @@ public class ConllEntityFeatureExtractor {
         ConllRawToken[] window1 = s.returnWindow(index1, 2, 2);
         ConllRawToken[] window2 = s.returnWindow(index2, 2, 2);
 
-        for (int i = 0; i < window1.length; i++) {
-            id = window1[i].wordId - index1;
-            features.put(lPrefix + "POS_WINDOW" + id + ":" + window1[i].POS, 1.0);
+        for (ConllRawToken aWindow1 : window1) {
+            id = aWindow1.wordId - index1;
+            features.put(lPrefix + "POS_WINDOW" + id + ":" + aWindow1.POS, 1.0);
         }
 
-        for (int i = 0; i < window2.length; i++) {
-            id = window2[i].wordId - index2;
-            features.put(rPrefix + "POS_WINDOW" + id + ":" + window2[i].POS, 1.0);
+        for (ConllRawToken aWindow2 : window2) {
+            id = aWindow2.wordId - index2;
+            features.put(rPrefix + "POS_WINDOW" + id + ":" + aWindow2.POS, 1.0);
         }
 
         if (locGazet.isContainedIn(ct1)) {

@@ -87,13 +87,6 @@ public class GazeteerReader {
         return true;
     }
 
-    public boolean testMembership(ConllRawToken ct) {
-        if (ct.getLength() > 1) {
-            return testMembership(ct.getWords(true));
-        }
-        return testMembership(ct.getPhrase(true));
-    }
-
     public boolean subArray(String[] big, String[] small, int index) {
         for (int i = 0; i < small.length; i++) {
             if (!big[i + index].equals(small[i])) {

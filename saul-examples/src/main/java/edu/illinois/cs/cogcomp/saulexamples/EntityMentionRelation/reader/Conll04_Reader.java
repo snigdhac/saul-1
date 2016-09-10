@@ -25,10 +25,8 @@ public class Conll04_Reader implements Parser {
     public String type_;
 
     public String[] entityLabels, relLabels;
-    private int currentInstanceId;
     private int currentTokenId;
     private int currentPairId;
-    private int currentSentenceId;
 
     public Conll04_Reader(String filename, String ty) {
         instances = new Vector<>();
@@ -46,8 +44,7 @@ public class Conll04_Reader implements Parser {
         String line;
         String[] tokens;
 
-
-        ConllRawToken c = new ConllRawToken();
+        ConllRawToken c;
 
         ConllRelation r;
         int currSentId = 0;
@@ -57,8 +54,8 @@ public class Conll04_Reader implements Parser {
         ArrayList<String> entityal = new ArrayList<>();
         ArrayList<String> relal = new ArrayList<>();
 
-        boolean relationSeen = false;
         int sentindex = 0;
+        assert lines != null;
         while (sentindex < lines.size()) {
             line = lines.get(sentindex);
             sentindex++;
@@ -71,7 +68,6 @@ public class Conll04_Reader implements Parser {
             tokens = line.split("\t|\n");
             int s = tokens.length;
             if (s == 3) {
-                relationSeen = true;
                 r = new ConllRelation();
                 r.sentId = currSentId;
                 r.wordId1 = Integer.parseInt(tokens[0]);
@@ -105,9 +101,7 @@ public class Conll04_Reader implements Parser {
                         entityal.add(tokens[1]);
                     }
                 }
-
                 sentEnd = false;
-                relationSeen = false;
             }
         }
 
@@ -119,7 +113,6 @@ public class Conll04_Reader implements Parser {
             relations.elementAt(counter).s.sentTokens.addAll(0, sentences.elementAt(sindex).sentTokens);
             relations.elementAt(counter).e1 = sentences.elementAt(sindex).sentTokens.elementAt(relations.elementAt(counter).wordId1);
             relations.elementAt(counter).e2 = sentences.elementAt(sindex).sentTokens.elementAt(relations.elementAt(counter).wordId2);
-
         }
     }
 
@@ -142,14 +135,14 @@ public class Conll04_Reader implements Parser {
     }
 
     public void close() {
+        // do nothing
     }
 
     public Object next() {
 
         if (type_.equals("Token")) {
             if (currentTokenId < instances.size()) {
-                ConllRawToken file = instances.get(currentTokenId++);
-                return file;//Document(file, label);
+                return instances.get(currentTokenId++);
             } else
                 return null;
         }
@@ -163,7 +156,6 @@ public class Conll04_Reader implements Parser {
                 return null;
         }
         return null;
-
     }
 
     public void reset() {
@@ -194,13 +186,4 @@ public class Conll04_Reader implements Parser {
         a[1] = r.e2;
         return a;
     }
-
-    public static ConllRawToken PersonCandidate(ConllRelation t) {
-        return t.e1;
-    }
-
-    public static ConllRawToken OrgCandidate(ConllRelation t) {
-        return t.e2;
-    }
-
 }
