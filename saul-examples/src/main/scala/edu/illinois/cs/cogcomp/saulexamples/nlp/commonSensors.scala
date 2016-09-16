@@ -1,9 +1,17 @@
+/** This software is released under the University of Illinois/Research and Academic Use License. See
+  * the LICENSE file in the root folder for details. Copyright (c) 2016
+  *
+  * Developed by: The Cognitive Computations Group, University of Illinois at Urbana-Champaign
+  * http://cogcomp.cs.illinois.edu/
+  */
 package edu.illinois.cs.cogcomp.saulexamples.nlp
 
 import edu.illinois.cs.cogcomp.annotation.AnnotatorService
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.{ Constituent, Sentence, TextAnnotation }
 import edu.illinois.cs.cogcomp.curator.CuratorFactory
+import edu.illinois.cs.cogcomp.edison.features.factory.WordFeatureExtractorFactory
+import edu.illinois.cs.cogcomp.edison.features.{ FeatureExtractor, FeatureUtilities }
 import edu.illinois.cs.cogcomp.nlp.pipeline.IllinoisPipelineFactory
 import edu.illinois.cs.cogcomp.saul.util.Logging
 import edu.illinois.cs.cogcomp.saulexamples.data.Document
@@ -15,10 +23,6 @@ object CommonSensors extends Logging {
 
   def textCollection(x: List[Document]) = {
     x.map(documentContent)
-  }
-
-  def documentContent(x: Document): String = {
-    x.getWords.mkString(" ")
   }
 
   def getSentences(x: TextAnnotation): List[Sentence] = {
@@ -45,11 +49,20 @@ object CommonSensors extends Logging {
     ta.getView(ViewNames.TOKENS).getConstituents.toList
   }
 
-  /** Annotation services */
-  def processDocumentWith(annotatorService: AnnotatorService, cid: String, did: String, text: String, services: String*): TextAnnotation = {
-    val ta = annotatorService.createBasicTextAnnotation(cid, did, text)
-    logger.debug("populated views " + ta.getAvailableViews)
-    ta
+  def sentenceToTokens(s: Sentence): List[Constituent] = {
+    s.getView(ViewNames.TOKENS).getConstituents.toList
+  }
+
+  def getPosTag(x: Constituent): String = {
+    WordFeatureExtractorFactory.pos.getFeatures(x).mkString
+  }
+
+  def getLemma(x: Constituent): String = {
+    WordFeatureExtractorFactory.lemma.getFeatures(x).mkString
+  }
+
+  def getFeature(x: Constituent, fex: FeatureExtractor): String = {
+    FeatureUtilities.getFeatureSet(fex, x).mkString(",")
   }
 
   def annotateWithCurator(document: Document): TextAnnotation = {
@@ -57,9 +70,20 @@ object CommonSensors extends Logging {
     annotateRawWithCurator(content, document.getGUID)
   }
 
+  def documentContent(x: Document): String = {
+    x.getWords.mkString(" ")
+  }
+
   def annotateRawWithCurator(content: String, id: String): TextAnnotation = {
     val annotatorService = CuratorFactory.buildCuratorClient()
     processDocumentWith(annotatorService, "corpus", id, content)
+  }
+
+  /** Annotation services */
+  def processDocumentWith(annotatorService: AnnotatorService, cid: String, did: String, text: String, services: String*): TextAnnotation = {
+    val ta = annotatorService.createBasicTextAnnotation(cid, did, text)
+    logger.debug("populated views " + ta.getAvailableViews)
+    ta
   }
 
   def annotateWithPipeline(content: String, id: String): TextAnnotation = {

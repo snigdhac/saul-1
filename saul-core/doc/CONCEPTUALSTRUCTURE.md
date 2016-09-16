@@ -1,6 +1,6 @@
 # Conceptual Structure
 
-Each Saul program is a general purpose Scala program in which Saul DSL high level constructs are used to design application programs.
+Each Saul program is a general purpose Scala program in which the Saul DSL high level constructs are used to design intelligent applications.
 The provided constructs are designed to enable declarative programing for the following conceptual
 components of each application that uses learning and inference.
 
@@ -75,6 +75,8 @@ val mathchWord = (param: String) => property(token) {
 ```
 
 Note that there is no limitation on the number/types of the extra parameters passed to properties. 
+
+**Caution:** never define a property with keyword `def`, and instead define it as `val` (as shown in the examples above).  
 
 ### Defining edges
 
