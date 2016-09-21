@@ -110,38 +110,25 @@ lazy val saulExamples = (project in file("saul-examples")).
   .aggregate(saulCore)
   .enablePlugins(AutomateHeaderPlugin)
 
-val groupStr = "org.slf4j"
-val packStr = "slf4j-log4j12"
-
-
 lazy val saulWebapp = (project in file("saul-webapp")).
   enablePlugins(PlayScala).
   settings(commonSettings: _*).
   settings(
     name := "saul-webapp",
     libraryDependencies ++= Seq(
-      "org.webjars" %% "webjars-play" % "2.4.0-1" exclude(groupStr, packStr),
-      "org.webjars" % "bootstrap" % "3.3.6" exclude(groupStr, packStr),
-      "org.webjars.bower" % "tether-shepherd" % "1.1.3" exclude(groupStr, packStr),
-      "org.webjars" % "ace" % "1.2.2" exclude(groupStr, packStr),
-      "org.webjars" % "sigma.js" % "1.0.3" exclude(groupStr, packStr),
-      "org.webjars" % "d3js" % "3.5.16" exclude(groupStr, packStr),
-      "org.scala-lang" % "scala-compiler" % scalaVersion.value exclude(groupStr, packStr),
-      "ch.qos.logback" % "logback-classic" % "1.1.7",
-      jdbc exclude(groupStr, packStr),
-      cache exclude(groupStr, packStr),
-      ws exclude(groupStr, packStr),
-      specs2 % Test exclude(groupStr, packStr)
+      "org.webjars" %% "webjars-play" % "2.4.0-1",
+      "org.webjars" % "bootstrap" % "3.3.6",
+      "org.webjars.bower" % "tether-shepherd" % "1.1.3",
+      "org.webjars" % "ace" % "1.2.2",
+      "org.webjars" % "sigma.js" % "1.0.3",
+      "org.webjars" % "d3js" % "3.5.16",
+      "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+      jdbc,
+      cache,
+      ws,
+      specs2 % Test
     ),
     resolvers ++= Seq("scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"),
     routesGenerator := InjectedRoutesGenerator
-  ).dependsOn(saulExamples)
-  .aggregate(saulExamples)
+  ).dependsOn(saulExamples).aggregate(saulExamples)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(
-    projectDependencies := {
-      Seq(
-        (projectID in saulExamples).value.exclude(groupStr, packStr)
-      )
-    }
-  )
