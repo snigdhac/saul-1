@@ -6,15 +6,38 @@
   */
 package edu.illinois.cs.cogcomp.saulexamples.setcover
 
+import edu.illinois.cs.cogcomp.lbjava.learn.Learner
+import edu.illinois.cs.cogcomp.saul.classifier.ConstrainedProblem
+import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
 import edu.illinois.cs.cogcomp.saul.util.Logging
 
 import scala.collection.JavaConversions._
 
 object SetCoverApp extends Logging {
-  val cityInstances = new City("saul-examples/src/main/resources/SetCover/example.txt")
+  val cityInstances = new City("src/main/resources/SetCover/example.txt")
   val neighborhoodInstances = cityInstances.getNeighborhoods.toList
+  object cp extends ConstrainedProblem[Neighborhood, City] {
+    override lazy val estimator = new LBJLearnerEquivalent {
+      override val classifier: Learner = new ContainsStation()
+    }
+    override def pathToHead = Some(-SetCoverSolverDataModel.cityContainsNeighborhoods)
+    override def constraintsOpt = Some(SetCoverSolverDataModel2.containsStationConstraint2)
+    override def solverType = OJAlgo
+  }
 
   def main(args: Array[String]) {
+    println("in main: allowable values: " + new ContainsStation().allowableValues.toSeq)
+    SetCoverSolverDataModel.cities populate List(cityInstances)
+    SetCoverSolverDataModel.neighborhoods populate neighborhoodInstances
+    def getParentCity = (n: Neighborhood) => n.getParentCity
+    SetCoverSolverDataModel.cityContainsNeighborhoods.populateWith((c: City, n: Neighborhood) => n.getParentCity == c)
+    //cp.build()
+    cityInstances.getNeighborhoods.foreach {
+      n => logger.info(n.getNumber + ": " + cp.build(n))
+    }
+  }
+
+  def oldApt(): Unit = {
     SetCoverSolverDataModel.cities populate List(cityInstances)
     SetCoverSolverDataModel.neighborhoods populate neighborhoodInstances
     SetCoverSolverDataModel.cityContainsNeighborhoods.populateWith(_ == _.getParentCity)

@@ -7,9 +7,11 @@
 package edu.illinois.cs.cogcomp.saulexamples.setcover
 
 import edu.illinois.cs.cogcomp.infer.ilp.OJalgoHook
-import edu.illinois.cs.cogcomp.saul.classifier.ConstrainedClassifier
+import edu.illinois.cs.cogcomp.lbjava.learn.Learner
+import edu.illinois.cs.cogcomp.saul.classifier.{ SaulFirstOrderConjunctionConstraint2, SaulPropositionalEqualityConstraint, SaulConstraint, ConstrainedClassifier }
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saul.constraint.ConstraintTypeConversion._
+import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
 
 object SetCoverSolverDataModel extends DataModel {
 
@@ -45,6 +47,54 @@ object SetCoverSolverDataModel extends DataModel {
   }
 
   val containsStationConstraint = ConstrainedClassifier.constraint[City] { x: City => allCityNeiborhoodsAreCovered(x) }
+}
+
+object SetCoverSolverDataModel2 extends DataModel {
+
+  val cities = node[City]
+
+  val neighborhoods = node[Neighborhood]
+
+  val cityContainsNeighborhoods = edge(cities, neighborhoods)
+
+  cityContainsNeighborhoods.populateWith((c, n) => c == n.getParentCity)
+
+  /** definition of the constraints */
+  val containStation: LBJLearnerEquivalent = new LBJLearnerEquivalent {
+    override val classifier: Learner = new ContainsStation()
+  }
+
+  import SaulConstraint._
+
+  def atLeastANeighborOfNeighborhoodIsCovered2 = { n: Neighborhood =>
+    n.getNeighbors.Exists { neighbor: Neighborhood => containStation on2 neighbor isTrue2 }
+  }
+
+  def neighborhoodContainsStation2 = { n: Neighborhood =>
+    containStation on2 n isTrue2
+  }
+
+  def fancyConstraint = { n: Neighborhood =>
+    (containStation on2 n isTrue2) and4 (containStation on2 n isTrue2)
+  }
+
+  def fancyConstraint2 = { n: Neighborhood =>
+    (containStation on2 n isTrue2) or4 (containStation on2 n isTrue2)
+  }
+
+  def fancyConstraint3 = { n: Neighborhood =>
+    (containStation on2 n isTrue2) or4 (containStation on2 n isTrue2) and4 (containStation on2 n isTrue2)
+  }
+
+  val x: List[City] = ???
+
+  def allCityNeiborhoodsAreCovered = { x: City =>
+    x.getNeighborhoods.ForAll { n: Neighborhood =>
+      neighborhoodContainsStation2(n).or4(atLeastANeighborOfNeighborhoodIsCovered2(n))
+    }
+  }
+
+  val containsStationConstraint2 = SetCoverSolverDataModel2.cities.ForAll { x: City => allCityNeiborhoodsAreCovered(x) }
 }
 
 import SetCoverSolverDataModel._
