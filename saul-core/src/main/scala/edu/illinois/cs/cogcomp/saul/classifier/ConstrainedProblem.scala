@@ -21,6 +21,8 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
   val tType: ClassTag[T],
   implicit val headType: ClassTag[HEAD]
 ) extends Logging {
+  import ConstrainedProblem._
+
   protected def estimator: LBJLearnerEquivalent
   protected def constraintsOpt: Option[SaulConstraint[HEAD]] = None
 
@@ -110,17 +112,18 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
 
     // populate the instances connected to head
     val candidates = getCandidates(head)
-    addVariablesToInferenceProblem(solver, estimator, candidates)
+    addVariablesToInferenceProblem(candidates, estimator, solver)
 
     // populate the constraints and relevant variables
-    constraintsOpt.foreach { case constraints => processConstriaints(solver, constraints) }
+    constraintsOpt.foreach { case constraints => processConstraints(head, constraints, solver) }
 
     solver.solve()
     println("# of candidates: " + candidates.length)
     println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.size)
     println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.get(estimator).get.size)
     candidates.foreach { c =>
-      estimatorToSolverLabelMap.get(estimator).get.get(c) match {
+      val estimatorSpecificMap = estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
+      estimatorSpecificMap.get(c) match {
         case Some(a) => a.foreach {
           case (ind, label) =>
             println("Instance: " + c)
@@ -138,29 +141,6 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     } else {
       logger.warn(s"Inference $name has not been cached; running inference . . . ")
     }*/
-  }
-
-  def processConstriaints[V](solver: ILPSolver, saulConstraint: SaulConstraint[V]): Unit = {
-
-    saulConstraint match {
-      case c: SaulFirstOrderConstraint[T] => createEstimatorSpecificCache(estimator)
-      case c: SaulPropositionalConstraint[T] => // do nothing
-    }
-
-    saulConstraint match {
-      case c: SaulPropositionalEqualityConstraint[V] =>
-      case c: SaulFirstOrderDisjunctionConstraint2[T, _] =>
-      case c: SaulFirstOrderConjunctionConstraint2[T, _] =>
-      case c: SaulFirstOrderAtLeastConstraint2[T, _] =>
-      case c: SaulFirstOrderAtMostConstraint2[T, _] =>
-      case c: SaulConjunction[T] =>
-      case c: SaulDisjunction[T] =>
-      case c: SaulImplication[T, _] =>
-      case c: SaulNegation[T] =>
-      // case c: SaulConstraint[T] =>
-      // case c: SaulFirstOrderConstraint[T] =>
-      // case c: SaulPropositionalConstraint[T] =>
-    }
   }
 
   //def solve(): Boolean = ??? /// solver.solve()
@@ -197,19 +177,81 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     val overalResult = OverallResult(overalResultArray(0), overalResultArray(1), overalResultArray(2))
     Results(perLabelResults, ClassifierUtils.getAverageResults(perLabelResults), overalResult)
   }*/
+}
 
-  // if the estimator has never been seen before, add its labels to the map
-  def createEstimatorSpecificCache(estimator: LBJLearnerEquivalent): Unit = {
-    if (!estimatorToSolverLabelMap.keySet.contains(estimator)) {
-      estimatorToSolverLabelMap += (estimator -> mutable.Map[T, Seq[(Int, String)]]())
+object ConstrainedProblem {
+  def processConstraints[V](instance: V, saulConstraint: SaulConstraint[V], solver: ILPSolver): Unit = {
+
+    saulConstraint match {
+      case c: SaulFirstOrderConstraint[V] => // do nothing
+      case c: SaulPropositionalConstraint[V] =>
+        addVariablesToInferenceProblem(Seq(instance), c.estimator, solver)
+    }
+
+    saulConstraint match {
+      case c: SaulPropositionalEqualityConstraint[V] =>
+        // estimates per instance
+        val estimatorScoresMap = estimatorToSolverLabelMap.get(c.estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
+        val (indices, labels) = estimatorScoresMap.get(instance).get.unzip
+        assert(
+          c.inequalityValOpt.isEmpty && c.equalityValOpt.isEmpty,
+          s"the equality constraint $c is not completely defined"
+        )
+        assert(
+          c.inequalityValOpt.isDefined && c.equalityValOpt.isDefined,
+          s"the equality constraint $c has values for both equality and inequality"
+        )
+        if (c.equalityValOpt.isDefined) {
+          // first make sure the target value is valid
+          require(
+            c.estimator.classifier.allowableValues().toSet.contains(c.equalityValOpt.get),
+            s"The target value ${c.equalityValOpt} is not a valid value for classifier ${c.estimator}"
+          )
+          val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.equalityValOpt.get => idx }
+          val labelIndex = labelIndexOpt.getOrElse(
+            throw new Exception()
+          )
+          val coeffs = Array.fill(indices.length) { 0.0 }
+          coeffs(labelIndex) = 1.0
+          solver.addEqualityConstraint(indices.toArray, coeffs, 1)
+        } else {
+          require(
+            c.estimator.classifier.allowableValues().toSet.contains(c.inequalityValOpt.get),
+            s"The target value ${c.inequalityValOpt} is not a valid value for classifier ${c.estimator}"
+          )
+          val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.inequalityValOpt.get => idx }
+          val labelIndex = labelIndexOpt.getOrElse(
+            throw new Exception()
+          )
+          val coeffs = Array.fill(1) { 1.0 }
+          solver.addEqualityConstraint(Array(indices(labelIndex)), coeffs, 0)
+        }
+      case c: SaulFirstOrderDisjunctionConstraint2[V, _] =>
+      case c: SaulFirstOrderConjunctionConstraint2[V, _] =>
+      case c: SaulFirstOrderAtLeastConstraint2[V, _] =>
+      case c: SaulFirstOrderAtMostConstraint2[V, _] =>
+      case c: SaulConjunction[V] =>
+      case c: SaulDisjunction[V] =>
+      case c: SaulImplication[V, _] =>
+      case c: SaulNegation[V] =>
+      // case c: SaulConstraint[T] =>
+      // case c: SaulFirstOrderConstraint[T] =>
+      // case c: SaulPropositionalConstraint[T] =>
     }
   }
 
-  def addVariablesToInferenceProblem(solver: ILPSolver, estimator: LBJLearnerEquivalent, instances: Seq[T]): Unit = {
+  // if the estimator has never been seen before, add its labels to the map
+  def createEstimatorSpecificCache[V](estimator: LBJLearnerEquivalent): Unit = {
+    if (!estimatorToSolverLabelMap.keySet.contains(estimator)) {
+      estimatorToSolverLabelMap += (estimator -> mutable.Map[V, Seq[(Int, String)]]())
+    }
+  }
+
+  def addVariablesToInferenceProblem[V](instances: Seq[V], estimator: LBJLearnerEquivalent, solver: ILPSolver): Unit = {
     createEstimatorSpecificCache(estimator)
 
     // estimates per instance
-    val estimatorScoresMap = estimatorToSolverLabelMap.get(estimator).get
+    val estimatorScoresMap = estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
 
     // adding the estimates to the solver and to the map
     instances.foreach { c =>
@@ -231,45 +273,33 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
   //  val cachedResults = mutable.Map[String, mutable.Map[String, Int]]()
 
   // for each estimator, maps the label of the estimator, to the integer label of the solver
-  val estimatorToSolverLabelMap = mutable.Map[LBJLearnerEquivalent, mutable.Map[T, Seq[(Int, String)]]]()
+  val estimatorToSolverLabelMap = mutable.Map[LBJLearnerEquivalent, mutable.Map[_, Seq[(Int, String)]]]()
 
   // for each estimator, maps the integer label of the solver to the label of the estimator
   //  val solverToEstimatorLabelMap = mutable.Map[String, mutable.Map[Int, String]]()
-
 }
 
 import scala.collection.JavaConverters._
 
 object SaulConstraint {
-  // implicits
   implicit class LearnerToFirstOrderConstraint(estimator: LBJLearnerEquivalent) {
     def on2[T](newInstance: T)(implicit tag: ClassTag[T]): SaulPropositionalEqualityConstraint[T] = {
-      new SaulPropositionalEqualityConstraint[T](estimator, None, Some(newInstance))
+      new SaulPropositionalEqualityConstraint[T](estimator, Some(newInstance), None, None)
     }
   }
 
-  implicit def FirstOrderConstraint[T](coll: Seq[T]): FirstOrderObjWrapper[T] = new FirstOrderObjWrapper[T](coll)
+  implicit def FirstOrderConstraint[T](coll: Traversable[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
 
-  implicit def FirstOrderConstraint[T](coll: Iterable[T]): FirstOrderObjWrapper[T] = new FirstOrderObjWrapper[T](coll.toSeq)
+  implicit def FirstOrderConstraint[T](coll: Set[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
 
-  implicit def FirstOrderConstraint[T](coll: Set[T]): FirstOrderObjWrapper[T] = new FirstOrderObjWrapper[T](coll.toSeq)
+  implicit def FirstOrderConstraint[T](coll: java.util.Collection[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.asScala.toSeq)
 
-  implicit def FirstOrderConstraint[T](coll: java.util.Collection[T]): FirstOrderObjWrapper[T] = new FirstOrderObjWrapper[T](coll.asScala.toSeq)
+  implicit def FirstOrderConstraint[T](coll: mutable.LinkedHashSet[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
 
-  implicit def FirstOrderConstraint[T](coll: mutable.LinkedHashSet[T]): FirstOrderObjWrapper[T] = new FirstOrderObjWrapper[T](coll.toSeq)
-
-  implicit def FirstOrderConstraint[T <: AnyRef](node: Node[T]): FirstOrderObjWrapper[T] = new FirstOrderObjWrapper[T](node.getAllInstances.toSeq)
+  implicit def FirstOrderConstraint[T <: AnyRef](node: Node[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](node.getAllInstances.toSeq)
 }
 
-class FirstOrderObjWrapper[T](coll: Seq[T]) {
-  //  def ForAll(sensors: T => SaulPropositionalConstraint)(implicit tag: ClassTag[T]): SaulFirstOrderConjunctionConstraint2[T] = {
-  //    new SaulFirstOrderConjunctionConstraint2(sensors)
-  //  }
-  //
-  //  def ForAll(sensors: T => SaulMixConstraint)(implicit tag: ClassTag[T]): SaulFirstOrderConjunctionConstraint2[T] = {
-  //    new SaulFirstOrderConjunctionConstraint2(sensors)
-  //  }
-
+class ConstraintObjWrapper[T](coll: Seq[T]) {
   def ForAll[U](sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulFirstOrderConjunctionConstraint2[T, U] = {
     new SaulFirstOrderConjunctionConstraint2(sensors)
   }
@@ -312,22 +342,18 @@ sealed trait SaulConstraint[T] {
 // zero-th order constraints
 sealed trait SaulPropositionalConstraint[T] extends SaulConstraint[T] {
   def estimator: LBJLearnerEquivalent
-
-  //  def and3(firstOrderConstraint: SaulFirstOrderConstraint) = {
-  //    new SaulMixConjunction(Seq(firstOrderConstraint), Seq(this))
-  //  }
-  //
-  //  def or3(firstOrderConstraint: SaulFirstOrderConstraint) = {
-  //    new SaulMixDisjunction(Seq(firstOrderConstraint), Seq(this))
-  //  }
 }
 
-case class SaulPropositionalEqualityConstraint[T](estimator: LBJLearnerEquivalent, targetValueOpt: Option[String],
-  instanceOpt: Option[T]) extends SaulPropositionalConstraint[T] {
-  def is2(newValue: String): SaulPropositionalEqualityConstraint[T] =
-    new SaulPropositionalEqualityConstraint[T](estimator, Some(newValue), instanceOpt)
+case class SaulPropositionalEqualityConstraint[T](
+  estimator: LBJLearnerEquivalent,
+  instanceOpt: Option[T],
+  equalityValOpt: Option[String],
+  inequalityValOpt: Option[String]
+) extends SaulPropositionalConstraint[T] {
+  def is2(targetValue: String): SaulPropositionalEqualityConstraint[T] = new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, Some(targetValue), None)
   def isTrue2 = is2("true")
   def isFalse2 = is2("false")
+  def isNot2(targetValue: String): SaulPropositionalEqualityConstraint[T] = new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, None, Some(targetValue))
 }
 
 //sealed trait SaulPropositionalNArrayConstraint extends SaulPropositionalConstraint { def constraints: Seq[SaulPropositionalConstraint] }

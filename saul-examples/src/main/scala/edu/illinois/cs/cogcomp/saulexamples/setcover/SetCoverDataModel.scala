@@ -8,7 +8,7 @@ package edu.illinois.cs.cogcomp.saulexamples.setcover
 
 import edu.illinois.cs.cogcomp.infer.ilp.OJalgoHook
 import edu.illinois.cs.cogcomp.lbjava.learn.Learner
-import edu.illinois.cs.cogcomp.saul.classifier.{ SaulFirstOrderConjunctionConstraint2, SaulPropositionalEqualityConstraint, SaulConstraint, ConstrainedClassifier }
+import edu.illinois.cs.cogcomp.saul.classifier.{ SaulConstraint, ConstrainedClassifier }
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saul.constraint.ConstraintTypeConversion._
 import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
