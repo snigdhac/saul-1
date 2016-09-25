@@ -50,24 +50,24 @@ class InferenceQuantifierTests extends FlatSpec with Matchers {
       x.getNeighborhoods._atleast(2) { n: Neighborhood => neighborhoodContainsStation(n) }
     }
 
-    val atLeastSomeNeighborsAreCoveredConstraint2 = cities.FirstOrderConstraint.ForAll { x: City =>
-      x.getNeighborhoods.FirstOrderConstraint.AtLeast(2) { n: Neighborhood => neighborhoodContainsStation2(n) }
+    val atLeastSomeNeighborsAreCoveredConstraint2 = cities.ForAll { x: City =>
+      x.getNeighborhoods.AtLeast(2) { n: Neighborhood => neighborhoodContainsStation2(n) }
     }
 
     val atLeastSomeNeighborsAreCoveredConstraintUsingAtMost = ConstrainedClassifier.constraint[City] { x: City =>
       !x.getNeighborhoods._atmost(2) { n: Neighborhood => neighborhoodContainsStation(n) }
     }
 
-    val atLeastSomeNeighborsAreCoveredConstraintUsingAtMost2 = cities.FirstOrderConstraint.ForAll { x: City =>
-      !x.getNeighborhoods.FirstOrderConstraint.AtMost(2) { n: Neighborhood => neighborhoodContainsStation2(n) }
+    val atLeastSomeNeighborsAreCoveredConstraintUsingAtMost2 = cities.ForAll { x: City =>
+      !x.getNeighborhoods.AtMost(2) { n: Neighborhood => neighborhoodContainsStation2(n) }
     }
 
     val allNeighborsAreCoveredConstraint = ConstrainedClassifier.constraint[City] { x: City =>
       x.getNeighborhoods._forall { n: Neighborhood => neighborhoodContainsStation(n) }
     }
 
-    val allNeighborsAreCoveredConstraint2 = cities.FirstOrderConstraint.ForAll { x: City =>
-      x.getNeighborhoods.FirstOrderConstraint.ForAll { n: Neighborhood => neighborhoodContainsStation2(n) }
+    val allNeighborsAreCoveredConstraint2 = cities.ForAll { x: City =>
+      x.getNeighborhoods.ForAll { n: Neighborhood => neighborhoodContainsStation2(n) }
     }
 
     val singleNeighborsAreCoveredConstraint = ConstrainedClassifier.constraint[City] { x: City =>
