@@ -20,17 +20,17 @@ object SetCoverApp extends Logging {
     override lazy val estimator = new LBJLearnerEquivalent {
       override val classifier: Learner = new ContainsStation()
     }
-    override def pathToHead = Some(-SetCoverSolverDataModel.cityContainsNeighborhoods)
+    override def pathToHead = Some(-SetCoverSolverDataModel2.cityContainsNeighborhoods)
     override def constraintsOpt = Some(SetCoverSolverDataModel2.containsStationConstraint2)
     override def solverType = OJAlgo
   }
 
   def main(args: Array[String]) {
     println("in main: allowable values: " + new ContainsStation().allowableValues.toSeq)
-    SetCoverSolverDataModel.cities populate List(cityInstances)
-    SetCoverSolverDataModel.neighborhoods populate neighborhoodInstances
+    SetCoverSolverDataModel2.cities populate List(cityInstances)
+    SetCoverSolverDataModel2.neighborhoods populate neighborhoodInstances
     def getParentCity = (n: Neighborhood) => n.getParentCity
-    SetCoverSolverDataModel.cityContainsNeighborhoods.populateWith((c: City, n: Neighborhood) => n.getParentCity == c)
+    SetCoverSolverDataModel2.cityContainsNeighborhoods.populateWith((c: City, n: Neighborhood) => n.getParentCity == c)
     //cp.build()
     cityInstances.getNeighborhoods.foreach {
       n => logger.info(n.getNumber + ": " + cp.build(n))

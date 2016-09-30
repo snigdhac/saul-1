@@ -86,15 +86,13 @@ object SetCoverSolverDataModel2 extends DataModel {
     (containStation on2 n isTrue2) or4 (containStation on2 n isTrue2) and4 (containStation on2 n isTrue2)
   }
 
-  val x: List[City] = ???
-
   def allCityNeiborhoodsAreCovered = { x: City =>
     x.getNeighborhoods.ForAll { n: Neighborhood =>
       neighborhoodContainsStation2(n).or4(atLeastANeighborOfNeighborhoodIsCovered2(n))
     }
   }
 
-  val containsStationConstraint2 = SetCoverSolverDataModel2.cities.ForAll { x: City => allCityNeiborhoodsAreCovered(x) }
+  def containsStationConstraint2 = SetCoverSolverDataModel2.cities.ForAll { x: City => allCityNeiborhoodsAreCovered(x) }
 }
 
 import SetCoverSolverDataModel._
