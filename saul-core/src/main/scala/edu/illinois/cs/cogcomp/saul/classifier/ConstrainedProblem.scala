@@ -98,14 +98,14 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     case _ => throw new Exception("Hook not found! ")
   }
 
-  def build(t: T): Unit = {
+  def build(t: T): String = {
     findHead(t) match {
-      case Some(head) => build(head)
-      case None => // do nothing
+      case Some(head) => build(head, t)
+      case None => throw new Exception("Unknown head object")
     }
   }
 
-  def build(head: HEAD)(implicit d: DummyImplicit): Unit = {
+  private def build(head: HEAD, t: T)(implicit d: DummyImplicit): String = {
     // create a new solver instance
     val solver = getSolverInstance
 
@@ -114,35 +114,40 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     addVariablesToInferenceProblem(candidates, estimator, solver)
 
     // populate the constraints and relevant variables
-    println("constraintsOpt = ")
-    println(constraintsOpt)
+    //println("constraintsOpt = ")
+    //println(constraintsOpt)
     constraintsOpt.foreach {
       case constraints =>
-        println("constraints = ")
-        println(constraints)
+        //println("constraints = ")
+        //        println(constraints)
         val inequalities = processConstraints(head, constraints, solver)
-      //        inequalities.foreach { inequality =>
-      //          solver.addLessThanConstraint(inequality.x, inequality.a, inequality.b)
-      //        }
+        //        inequalities.foreach { inequality =>
+        //          solver.addLessThanConstraint(inequality.x, inequality.a, inequality.b)
+        //        }
+        inequalities.foreach { ineq =>
+          solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
+        }
     }
 
-    /*    solver.solve()
-    println("# of candidates: " + candidates.length)
-    println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.size)
-    println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.get(estimator).get.size)
-    candidates.foreach { c =>
-      val estimatorSpecificMap = estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
-      estimatorSpecificMap.get(c) match {
-        case Some(a) => a.foreach {
+    solver.solve()
+    val estimatorSpecificMap = estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
+
+    //println("# of candidates: " + candidates.length)
+    //println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.size)
+    //println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.get(estimator).get.size)
+    estimatorSpecificMap.get(t) match {
+      case Some(indexLabelPairs) =>
+        val values = indexLabelPairs.map {
           case (ind, label) =>
-            println("Instance: " + c)
-            println(s"label:$label -> ")
-            println(s"int:$ind -> ")
-            println("solver.getIntegerValue: " + solver.getIntegerValue(ind))
+            solver.getIntegerValue(ind)
         }
-        case None => throw new Exception("instance is not cached ... weird! :-/ ")
-      }
-    }*/
+        assert(values.sum == 1, "exactly one label should be active.")
+
+        indexLabelPairs.collectFirst {
+          case (ind, label) if solver.getIntegerValue(ind) == 1.0 => label
+        }.get
+      case None => throw new Exception("instance is not cached ... weird! :-/ ")
+    }
 
     /*val name = head.toString + head.hashCode()
     if(InferenceManager.problemNames.contains(name)){
@@ -361,14 +366,14 @@ object ConstrainedProblem {
         // newB = min(a1.x)
         val InequalitySystem1New = InequalitySystem1.map { ins =>
           val minValue = (ins.a.filter(_ < 0) :+ 0.0).sum
-          val a1New = ins.a :+ (minValue-ins.b)
+          val a1New = ins.a :+ (minValue - ins.b)
           val x1New = ins.x :+ y
           val b1New = minValue
           ILPInequalityGEQ(a1New, x1New, b1New)
         }
         val InequalitySystem2New = InequalitySystem2.map { ins =>
           val minValue = (ins.a.filter(_ < 0) :+ 0.0).sum
-          val a2New = ins.a :+ (minValue-ins.b)
+          val a2New = ins.a :+ (minValue - ins.b)
           val x2New = ins.x :+ y
           val b2New = minValue
           ILPInequalityGEQ(a2New, x2New, b2New)
@@ -565,4 +570,3 @@ case class SaulAtMost[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends
 case class SaulImplication[T, U](p: SaulConstraint[T], q: SaulConstraint[U]) extends SaulConstraint[T]
 
 case class SaulNegation[T](p: SaulConstraint[T]) extends SaulConstraint[T]
-
