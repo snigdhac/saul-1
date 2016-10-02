@@ -35,5 +35,5 @@ Proceedings of the International Joint Conferences on Artificial Intelligence (I
 [2] Parisa Kordjamshidi, Daniel Khashabi, Christos Christodoulopoulos, Bhargav Mangipudi, Sameer Singh and Dan Roth. "Better call Saul: Flexible Programming for Learning and Inference in NLP." International Conference on Computational Linguistics (COLING), 2016. 
 
 ## Licensing
-_To see the full license for this software, see the LICENSE (in `doc` directory) or visit the download page 
+_To see the full license for this software, see the LICENSE (in root directory) or visit the download page 
 for this software and press `Download`. The next screen displays the license._
