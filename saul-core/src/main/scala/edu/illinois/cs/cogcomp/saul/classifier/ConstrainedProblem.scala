@@ -503,8 +503,8 @@ class ConstraintObjWrapper[T](coll: Seq[T]) {
   def AtLeast[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtLeast[T, U] = {
     new SaulAtLeast[T, U](coll.map(sensors).toSet, k)
   }
-  def AtMost[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtLeast[T, U] = {
-    new SaulAtLeast[T, U](coll.map(sensors).toSet, k)
+  def AtMost[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtMost[T, U] = {
+    new SaulAtMost[T, U](coll.map(sensors).toSet, k)
   }
 }
 
@@ -560,8 +560,6 @@ case class SaulPairConjunction[T, U](c1: SaulConstraint[T], c2: SaulConstraint[U
 case class SaulPairDisjunction[T, U](c1: SaulConstraint[T], c2: SaulConstraint[U]) extends SaulConstraint[T]
 
 case class SaulForAll[T, U](constraints: Set[SaulConstraint[U]]) extends SaulConstraint[T]
-
-//case class SaulExists[T, U](constraints: Set[SaulConstraint[U]]) extends SaulConstraint[T]
 
 case class SaulAtLeast[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends SaulConstraint[T]
 

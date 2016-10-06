@@ -26,6 +26,11 @@ object SetCoverApp extends Logging {
   }
 
   def main(args: Array[String]) {
+    //    oldApt()
+    newApp()
+  }
+
+  def newApp(): Unit = {
     println("in main: allowable values: " + new ContainsStation().allowableValues.toSeq)
     SetCoverSolverDataModel2.cities populate List(cityInstances)
     SetCoverSolverDataModel2.neighborhoods populate neighborhoodInstances
