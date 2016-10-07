@@ -111,26 +111,42 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
 
     // populate the instances connected to head
     val candidates = getCandidates(head)
+    println("*** candidates = " + candidates)
     addVariablesToInferenceProblem(candidates, estimator, solver)
+
+    println("estimatorToSolverLabelMap = " + estimatorToSolverLabelMap)
 
     // populate the constraints and relevant variables
     //println("constraintsOpt = ")
-    //println(constraintsOpt)
+    println(constraintsOpt)
     constraintsOpt.foreach {
       case constraints =>
         //println("constraints = ")
         //        println(constraints)
-        val inequalities = processConstraints(head, constraints, solver)
+        val inequalities = processConstraints(constraints, solver)
         //        inequalities.foreach { inequality =>
         //          solver.addLessThanConstraint(inequality.x, inequality.a, inequality.b)
         //        }
+        println("final inequalities  . .  . ")
         inequalities.foreach { ineq =>
+          println("------")
+          println("ineq.x = " + ineq.x.toSeq)
+          println("ineq.a = " + ineq.a.toSeq)
+          println("ineq.b = " + ineq.b)
           solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
         }
     }
 
     solver.solve()
+
     val estimatorSpecificMap = estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
+
+    println(" ----- after solving it ------ ")
+    (1 to 30).foreach{ int =>
+      println("solver.getIntegerValue(int) = " + solver.getIntegerValue(int))
+      println("solver.getBooleanValue(int) = " + solver.getBooleanValue(int))
+      println("-------")
+    }
 
     //println("# of candidates: " + candidates.length)
     //println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.size)
@@ -296,20 +312,37 @@ object ConstrainedProblem {
   // equal to: ax = b
   //case class ILPInequalityEQ(a: Array[Double], x: Array[Int], b: Double) extends ILPInequality
 
-  def processConstraints[V <: Any](instance: V, saulConstraint: SaulConstraint[V], solver: ILPSolver)(implicit tag: ClassTag[V]): Set[ILPInequalityGEQ] = {
+  def processConstraints[V <: Any](saulConstraint: SaulConstraint[V], solver: ILPSolver)(implicit tag: ClassTag[V]): Set[ILPInequalityGEQ] = {
 
     //println("SaulConstraint: " + saulConstraint)
-    saulConstraint match {
+/*    saulConstraint match {
       case c: SaulPropositionalConstraint[V] =>
         addVariablesToInferenceProblem(Seq(instance), c.estimator, solver)
       case _ => // do nothing
-    }
+    }*/
 
     saulConstraint match {
       case c: SaulPropositionalEqualityConstraint[V] =>
+        assert(c.instanceOpt.isDefined, "the instance in the constraint should definitely be defined.")
+
+        // add the missing variables to the map
+        addVariablesToInferenceProblem(Seq(c.instanceOpt.get), c.estimator, solver)
+
         // estimates per instance
         val estimatorScoresMap = estimatorToSolverLabelMap.get(c.estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
-        val (ilpIndices, labels) = estimatorScoresMap.get(instance).get.unzip
+
+        println("****** c.instanceOpt.get = " + c.instanceOpt.get)
+        val (ilpIndices, labels) = estimatorScoresMap.get(c.instanceOpt.get) match {
+          case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.unzip
+          case None =>
+            val confidenceScores = c.estimator.classifier.scores(c).toArray.map(_.score)
+            val labels = c.estimator.classifier.scores(c.instanceOpt.get).toArray.map(_.value)
+            val indicesPerLabels = solver.addDiscreteVariable(confidenceScores)
+            estimatorScoresMap += (c.instanceOpt.get -> indicesPerLabels.zip(labels) )
+            estimatorToSolverLabelMap.put(c.estimator, estimatorScoresMap)
+            (indicesPerLabels.toSeq, labels.toSeq)
+        }
+
         assert(
           c.inequalityValOpt.isEmpty || c.equalityValOpt.isEmpty,
           s"the equality constraint $c is not completely defined"
@@ -318,6 +351,7 @@ object ConstrainedProblem {
           c.inequalityValOpt.isDefined || c.equalityValOpt.isDefined,
           s"the equality constraint $c has values for both equality and inequality"
         )
+
         if (c.equalityValOpt.isDefined) {
           // first make sure the target value is valid
           require(
@@ -325,9 +359,7 @@ object ConstrainedProblem {
             s"The target value ${c.equalityValOpt} is not a valid value for classifier ${c.estimator}"
           )
           val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.equalityValOpt.get => idx }
-          val x = labelIndexOpt.getOrElse(
-            throw new Exception(s"the corresponding index to label ${c.equalityValOpt.get} not found")
-          )
+          val x = ilpIndices(labelIndexOpt.getOrElse(throw new Exception(s"the corresponding index to label ${c.equalityValOpt.get} not found")))
 
           // 1.0 x >= 1 : possible only when x = 1
           val a = Array(1.0)
@@ -339,23 +371,21 @@ object ConstrainedProblem {
             s"The target value ${c.inequalityValOpt} is not a valid value for classifier ${c.estimator}"
           )
           val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.inequalityValOpt.get => idx }
-          val x = labelIndexOpt.getOrElse(
-            throw new Exception()
-          )
+          val x = ilpIndices(labelIndexOpt.getOrElse(throw new Exception(s"the corresponding index to label ${c.equalityValOpt.get} not found")))
           val a = Array(1.0)
           val b = 1.0
           // -1 x >= 0 : possible only when x = 0
           Set(ILPInequalityGEQ(a, Array(x), b))
         }
       case c: SaulPairConjunction[V, Any] =>
-        val InequalitySystem1 = processConstraints(instance, c.c1, solver)
-        val InequalitySystem2 = processConstraints(instance, c.c2, solver)
+        val InequalitySystem1 = processConstraints(c.c1, solver)
+        val InequalitySystem2 = processConstraints(c.c2, solver)
 
         // conjunction is simple; you just include all the inequalities
         InequalitySystem1 union InequalitySystem2
       case c: SaulPairDisjunction[V, Any] =>
-        val InequalitySystem1 = processConstraints(instance, c.c1, solver)
-        val InequalitySystem2 = processConstraints(instance, c.c2, solver)
+        val InequalitySystem1 = processConstraints(c.c1, solver)
+        val InequalitySystem2 = processConstraints(c.c2, solver)
         val y = solver.addBooleanVariable(0.0)
 
         // a1.x >= b1 or a2.x >= b2:
@@ -381,7 +411,7 @@ object ConstrainedProblem {
         InequalitySystem1New union InequalitySystem2New
       case c: SaulNegation[V] =>
         // change the signs of the coefficients
-        val InequalitySystemToBeNegated = processConstraints(instance, c.p, solver)
+        val InequalitySystemToBeNegated = processConstraints(c.p, solver)
         InequalitySystemToBeNegated.map { in =>
           val minusA = in.a.map(-_)
           val minusB = -in.b
@@ -393,9 +423,20 @@ object ConstrainedProblem {
         // newA = [a, min(ax)-b]
         // newX = [x, y]
         // newB = min(ax)
-        val InequalitySystemsAtLeast = c.constraints.map { processConstraints(instance, _, solver) }
+        println("estimatorToSolverLabelMap = " + estimatorToSolverLabelMap)
+        println("c.constraints = " + c.constraints)
+        val InequalitySystemsAtLeast = c.constraints.map { processConstraints(_, solver) }
+        println("InequalitySystemsAtLeast = ")
+        println(InequalitySystemsAtLeast)
+        InequalitySystemsAtLeast.foreach{
+          _.foreach{ ins =>
+            println("a = " + ins.a.toSeq)
+            println("x = " + ins.x.toSeq)
+            println("b = " + ins.b)
+          }
+        }
         val (inequalities, newAuxillaryVariables) = InequalitySystemsAtLeast.map { inequalitySystem =>
-          val y = solver.addBooleanVariable(0.0)
+          val y = solver.addBooleanVariable(-1.0)
           val newInequalities = inequalitySystem.map { inequality =>
             val minValue = (inequality.a.filter(_ < 0) :+ 0.0).sum
             val newA = inequality.a :+ (minValue - inequality.b)
@@ -409,13 +450,13 @@ object ConstrainedProblem {
         // add a new constraint: at least k constraints should be active
         inequalities.flatten + ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => 1.0), newAuxillaryVariables.toArray, c.k)
       case c: SaulAtMost[V, Any] =>
-        val InequalitySystemsAtMost = c.constraints.map { processConstraints(instance, _, solver) }
+        val InequalitySystemsAtMost = c.constraints.map { processConstraints(_, solver) }
         // for each inequality ax >= b we introduce a binary variable y
         // and convert the constraint to ax >= by + (1-y)min(ax)
         // newA = [a, min(ax)-b]
         // newX = [x, y]
         // newB = min(ax)
-        val InequalitySystemsAtLeast = c.constraints.map { processConstraints(instance, _, solver) }
+        val InequalitySystemsAtLeast = c.constraints.map { processConstraints(_, solver) }
         val (inequalities, newAuxillaryVariables) = InequalitySystemsAtLeast.map { inequalitySystem =>
           val y = solver.addBooleanVariable(0.0)
           val newInequalities = inequalitySystem.map { inequality =>
@@ -432,7 +473,7 @@ object ConstrainedProblem {
       //case c: SaulExists[V, Any] =>
       //  val InequalitySystemsAtMost = c.constraints.map { processConstraints(instance, _, solver) }
       case c: SaulForAll[V, Any] =>
-        c.constraints.flatMap { processConstraints(instance, _, solver) }
+        c.constraints.flatMap { processConstraints(_, solver) }
     }
   }
 
@@ -451,14 +492,23 @@ object ConstrainedProblem {
 
     // adding the estimates to the solver and to the map
     instances.foreach { c =>
+      println("-- instance = " + c)
       val confidenceScores = estimator.classifier.scores(c).toArray.map(_.score)
       //require(confidenceScores.forall(_ >= 0.0), s"Some of the scores returned by $estimator are below zero.")
       val labels = estimator.classifier.scores(c).toArray.map(_.value)
+      println("labels = " + labels.toSeq)
       val instanceIndexPerLabel = solver.addDiscreteVariable(confidenceScores)
+      println("instanceIndexPerLabel = " + instanceIndexPerLabel.toSeq)
       if (!estimatorScoresMap.contains(c)) {
         estimatorScoresMap += (c -> instanceIndexPerLabel.zip(labels).toSeq)
       }
     }
+
+    println("right after creating the variables: ")
+    println("estimatorScoresMap = " + estimatorScoresMap)
+
+    // add the variables back into the map
+    estimatorToSolverLabelMap.put(estimator, estimatorScoresMap)
   }
 
   import collection._
