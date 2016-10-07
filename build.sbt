@@ -88,7 +88,8 @@ lazy val saulCore = (project in file("saul-core")).
   settings(
     name := "saul",
     libraryDependencies ++= Seq(
-      "com.typesafe.play" % "play_2.11" % "2.4.3"
+      "com.typesafe.play" % "play_2.11" % "2.4.3",
+      "net.sf.meka" % "meka" % "1.9.0"
     )
   ).enablePlugins(AutomateHeaderPlugin)
 
