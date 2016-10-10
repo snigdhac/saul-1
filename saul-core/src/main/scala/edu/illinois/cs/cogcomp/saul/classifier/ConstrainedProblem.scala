@@ -44,7 +44,7 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
   /** The function is used to filter the generated candidates from the head object; remember that the inference starts
     * from the head object. This function finds the objects of type [[T]] which are connected to the target object of
     * type [[HEAD]]. If we don't define [[filter]], by default it returns all objects connected to [[HEAD]].
-    * The filter is useful for the JointTraining` when we go over all global objects and generate all contained object
+    * The filter is useful for the `JointTraining` when we go over all global objects and generate all contained object
     * that serve as examples for the basic classifiers involved in the `JoinTraining`. It is possible that we do not
     * want to use all possible candidates but some of them, for example when we have a way to filter the negative
     * candidates, this can come in the filter.
@@ -136,8 +136,24 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
           case (singleConstraint, ins) =>
             ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
         }
+      case c: SaulExactly[_, Any] =>
+        c.constraints.foldRight(Set[Any]()) {
+          case (singleConstraint, ins) =>
+            ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
+        }
     }
   }
+
+  //  def simplifyConstraint(constraint: SaulConstraint[_]): SaulConstraint[_] = {
+  //    constraint match {
+  //      case c: SaulNegation[_] =>
+  //        c.p match {
+  //          case d: SaulAtMost[_, _] => new SaulAtLeast[_, _](d.constraints.asInstanceOf[Set[SaulConstraint[Any]]], d.constraints.size - d.k)
+  //          //case d: SaulAtLeast[_, _] => new SaulAtMost[_, _](d.constraints, d.constraints.size - d.k)
+  //        }
+  //      case default => constraint
+  //    }
+  //  }
 
   private def build(head: HEAD, t: T)(implicit d: DummyImplicit): String = {
     val mainCacheKey = getInstancesInvolvedInProblem.map(cacheKey(_)).toSeq.sorted.mkString("*") + estimator.toString + constraintsOpt
@@ -189,6 +205,9 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
         }
 
         solver.solve()
+        if (!solver.isSolved) {
+          println(" /////// NOT SOLVED /////// ")
+        }
 
         val estimatorSpecificMap = estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
 
@@ -272,97 +291,11 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     Results(perLabelResults, ClassifierUtils.getAverageResults(perLabelResults), overalResult)
   }*/
 
-  //  val a = SaulForAll(
-  //    Set(
-  //      SaulForAll(
-  //        Set(
-  //          SaulPairDisjunction(
-  //            SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #8),Some(true),None),
-  //            SaulExists(Set(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #6),Some(true),None)))
-  //            ),
-  //          SaulPairDisjunction(
-  //            SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #9),Some(true),None),
-  //            SaulExists(Set(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #6),Some(true),None)))
-  //          ),
-  //          SaulPairDisjunction(
-  //            SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #1),Some(true),None),
-  //            SaulExists(Set(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #2),Some(true),None),
-  //            SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #3),Some(true),None),
-  //            SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #4),Some(true),None),
-  //            SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #5),Some(true),None)))),
-  //          SaulPairDisjunction(
-  //            SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #6),Some(true),None),
-  //            SaulExists(Set(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #7),Some(true),None),
-  //  SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #8),Some(true),None), SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #9),Some(true),None)))), SaulPairDisjunction(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #4),Some(true),None),SaulExists(Set(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #1),Some(true),None)))), SaulPairDisjunction(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #2),Some(true),None),SaulExists(Set(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #1),Some(true),None)))), SaulPairDisjunction(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #7),Some(true),None),SaulExists(Set(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #6),Some(true),None)))), SaulPairDisjunction(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #5),Some(true),None),SaulExists(Set(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #1),Some(true),None)))), SaulPairDisjunction(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #3),Some(true),None),SaulExists(Set(SaulPropositionalEqualityConstraint(edu.illinois.cs.cogcomp.saulexamples.setcover.SetCoverSolverDataModel2$$anon$1@5d47c63f,Some(neighborhood #1),Some(true),None))) )
-  //        )
-  //      )
-  //    )
-  //  )
-
 }
 
 object ConstrainedProblem {
-  /*
-  def processConstraints2[V](instance: V, saulConstraint: SaulConstraint[V], solver: ILPSolver): Unit = {
-
-    saulConstraint match {
-      case c: SaulFirstOrderConstraint[V] => // do nothing
-      case c: SaulPropositionalConstraint[V] =>
-        addVariablesToInferenceProblem(Seq(instance), c.estimator, solver)
-    }
-
-    saulConstraint match {
-      case c: SaulPropositionalEqualityConstraint[V] =>
-        // estimates per instance
-        val estimatorScoresMap = estimatorToSolverLabelMap.get(c.estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
-        val (indices, labels) = estimatorScoresMap.get(instance).get.unzip
-        assert(
-          c.inequalityValOpt.isEmpty && c.equalityValOpt.isEmpty,
-          s"the equality constraint $c is not completely defined"
-        )
-        assert(
-          c.inequalityValOpt.isDefined && c.equalityValOpt.isDefined,
-          s"the equality constraint $c has values for both equality and inequality"
-        )
-        if (c.equalityValOpt.isDefined) {
-          // first make sure the target value is valid
-          require(
-            c.estimator.classifier.allowableValues().toSet.contains(c.equalityValOpt.get),
-            s"The target value ${c.equalityValOpt} is not a valid value for classifier ${c.estimator}"
-          )
-          val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.equalityValOpt.get => idx }
-          val labelIndex = labelIndexOpt.getOrElse(
-            throw new Exception()
-          )
-          val coeffs = Array.fill(indices.length) { 0.0 }
-          coeffs(labelIndex) = 1.0
-          solver.addEqualityConstraint(indices.toArray, coeffs, 1)
-        } else {
-          require(
-            c.estimator.classifier.allowableValues().toSet.contains(c.inequalityValOpt.get),
-            s"The target value ${c.inequalityValOpt} is not a valid value for classifier ${c.estimator}"
-          )
-          val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.inequalityValOpt.get => idx }
-          val labelIndex = labelIndexOpt.getOrElse(
-            throw new Exception()
-          )
-          val coeffs = Array.fill(1) { 1.0 }
-          solver.addEqualityConstraint(Array(indices(labelIndex)), coeffs, 0)
-        }
-      case c: SaulConjunction[V] =>
-      case c: SaulDisjunction[V] =>
-      case c: SaulImplication[V, _] =>
-      case c: SaulNegation[V] =>
-      case c: SaulFirstOrderDisjunctionConstraint2[V, _] =>
-      case c: SaulFirstOrderConjunctionConstraint2[V, _] =>
-      case c: SaulFirstOrderAtLeastConstraint2[V, _] =>
-      case c: SaulFirstOrderAtMostConstraint2[V, _] =>
-      // case   c: SaulConstraint[T] =>
-      // case c: SaulFirstOrderConstraint[T] =>
-      // case c: SaulPropositionalConstraint[T] =>
-    }
-  }
-*/
+  // a small number used in creation of exclusive inequalities
+  private val epsilon = 0.01
 
   //  sealed trait ILPInequality{
   //    def a: Array[Double]
@@ -430,7 +363,7 @@ object ConstrainedProblem {
           // (a) +1x >= +1
           // (b) -1x >= -1
           // ILPInequalityGEQ(Array(-1.0), Array(x), -1.0)
-          Set(ILPInequalityGEQ(Array(1.0), Array(x), 1.0), ILPInequalityGEQ(Array(-1.0), Array(x), -1.0))
+          Set(ILPInequalityGEQ(Array(1.0), Array(x), 1.0)) //, ILPInequalityGEQ(Array(-1.0), Array(x), -1.0))
         } else {
           require(
             c.estimator.classifier.allowableValues().toSet.contains(c.inequalityValOpt.get),
@@ -441,7 +374,7 @@ object ConstrainedProblem {
           // 1 x == 0 : possible only when x = 0, which can be written as
           // (a) +1 x >= 0
           // (b) -1 x >= 0
-          Set(ILPInequalityGEQ(Array(1.0), Array(x), 0.0), ILPInequalityGEQ(Array(-1.0), Array(x), 0.0))
+          Set(ILPInequalityGEQ(Array(-1.0), Array(x), 0.0)) //, ILPInequalityGEQ(Array(1.0), Array(x), 0.0))
         }
       case c: SaulPairConjunction[V, Any] =>
         val InequalitySystem1 = processConstraints(c.c1, solver)
@@ -452,90 +385,130 @@ object ConstrainedProblem {
       case c: SaulPairDisjunction[V, Any] =>
         val InequalitySystem1 = processConstraints(c.c1, solver)
         val InequalitySystem2 = processConstraints(c.c2, solver)
-        val y = solver.addBooleanVariable(0.0)
-
+        val y1 = solver.addBooleanVariable(0.0)
+        val y2 = solver.addBooleanVariable(0.0)
         // a1.x >= b1 or a2.x >= b2:
-        // should be converted to a1.x >= b1.y + min(a1.x).(1-y) or a2.x >= b2.(1-y) + min(a2.x).y
+        // should be converted to
+        // a1.x >= b1.y1 + min(a1.x).(1-y1)
+        // a2.x >= b2.(1-y2) + min(a2.x).y2
+        // y1 + y2 >= 1
         // We can summarize the first one as:
-        // newA = [a1, min(a1.x)-b1]
-        // newX = [x, y]
-        // newB = min(a1.x)
+        // newA1 = [a1, min(a1.x)-b1]
+        // newX1 = [x, y]
+        // newB1 = min(a1.x)
         val InequalitySystem1New = InequalitySystem1.map { ins =>
           val minValue = (ins.a.filter(_ < 0) :+ 0.0).sum
           val a1New = ins.a :+ (minValue - ins.b)
-          val x1New = ins.x :+ y
+          val x1New = ins.x :+ y1
           val b1New = minValue
           ILPInequalityGEQ(a1New, x1New, b1New)
         }
         val InequalitySystem2New = InequalitySystem2.map { ins =>
           val minValue = (ins.a.filter(_ < 0) :+ 0.0).sum
           val a2New = ins.a :+ (minValue - ins.b)
-          val x2New = ins.x :+ y
+          val x2New = ins.x :+ y2
           val b2New = minValue
           ILPInequalityGEQ(a2New, x2New, b2New)
         }
-        InequalitySystem1New union InequalitySystem2New
+        val atLeastOne = ILPInequalityGEQ(Array(1, 1), Array(y1, y2), 1.0)
+        InequalitySystem1New union InequalitySystem2New + atLeastOne
       case c: SaulNegation[V] =>
         // change the signs of the coefficients
         val InequalitySystemToBeNegated = processConstraints(c.p, solver)
         InequalitySystemToBeNegated.map { in =>
           val minusA = in.a.map(-_)
-          val minusB = -in.b
+          val minusB = -in.b + epsilon
           ILPInequalityGEQ(minusA, in.x, minusB)
         }
       case c: SaulAtLeast[V, Any] =>
+        val InequalitySystems = c.constraints.map { processConstraints(_, solver) }
         // for each inequality ax >= b we introduce a binary variable y
-        // and convert the constraint to ax >= by + (1-y)min(ax)
-        // newA = [a, min(ax)-b]
-        // newX = [x, y]
-        // newB = min(ax)
-        //        println("estimatorToSolverLabelMap = " + estimatorToSolverLabelMap)
-        //        println("c.constraints = " + c.constraints)
-        val InequalitySystemsAtLeast = c.constraints.map { processConstraints(_, solver) }
-        //        println("InequalitySystemsAtLeast = ")
-        //        println(InequalitySystemsAtLeast)
-        InequalitySystemsAtLeast.foreach {
-          _.foreach { ins =>
-            //            println("a = " + ins.a.toSeq)
-            //            println("x = " + ins.x.toSeq)
-            //            println("b = " + ins.b)
-          }
-        }
-        val (inequalities, newAuxillaryVariables) = InequalitySystemsAtLeast.map { inequalitySystem =>
+        // and convert the constraint to ax >= by + (1-y).min(ax) and ax < (b-e)(1-y) + y.max(ax)
+        // which can be written as ax+y(min(ax)-b) >= min(ax) and ax + y(b - e - max(ax)) < b - e
+        // newA1 = [a, min(ax) - b]
+        // newX1 = [x, y]
+        // newB1 = min(ax)
+        // newA2 = [-a,  max(ax) - b]
+        // newX2 = [x, y]
+        // newB2 = -b + epsilon
+        val (inequalities, newAuxillaryVariables) = InequalitySystems.map { inequalitySystem =>
           val y = solver.addBooleanVariable(0.0)
-          val newInequalities = inequalitySystem.map { inequality =>
+          val newInequalities = inequalitySystem.flatMap { inequality =>
+            val maxValue = (inequality.a.filter(_ > 0) :+ 0.0).sum
             val minValue = (inequality.a.filter(_ < 0) :+ 0.0).sum
-            val newA = inequality.a :+ (minValue - inequality.b)
-            val newX = inequality.x :+ y
-            val newB = minValue
-            ILPInequalityGEQ(newA, newX, newB)
+            val newA1 = inequality.a :+ (minValue - inequality.b)
+            val newX1 = inequality.x :+ y
+            val newB1 = minValue
+            val newA2 = inequality.a.map(-_) :+ (maxValue + epsilon - inequality.b)
+            val newX2 = inequality.x :+ y
+            val newB2 = -inequality.b + epsilon
+            Set(ILPInequalityGEQ(newA1, newX1, newB1), ILPInequalityGEQ(newA2, newX2, newB2))
           }
           (newInequalities, y)
         }.unzip
-
         // add a new constraint: at least k constraints should be active
-        inequalities.flatten + ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => 1.0), newAuxillaryVariables.toArray, c.k)
+        inequalities.flatten +
+          ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => 1.0), newAuxillaryVariables.toArray, c.k)
       case c: SaulAtMost[V, Any] =>
-        val InequalitySystemsAtMost = c.constraints.map { processConstraints(_, solver) }
+        val InequalitySystems = c.constraints.map { processConstraints(_, solver) }
         // for each inequality ax >= b we introduce a binary variable y
-        // and convert the constraint to ax >= by + (1-y)min(ax)
-        // newA = [a, min(ax)-b]
-        // newX = [x, y]
-        // newB = min(ax)
-        val InequalitySystemsAtLeast = c.constraints.map { processConstraints(_, solver) }
-        val (inequalities, newAuxillaryVariables) = InequalitySystemsAtLeast.map { inequalitySystem =>
+        // and convert the constraint to ax >= by + (1-y).min(ax) and ax < (b-e)(1-y) + y.max(ax)
+        // which can be written as ax+y(min(ax)-b) >= min(ax) and ax + y(b - e - max(ax)) < b - e
+        // newA1 = [a, min(ax) - b]
+        // newX1 = [x, y]
+        // newB1 = min(ax)
+        // newA2 = [-a,  max(ax) - b]
+        // newX2 = [x, y]
+        // newB2 = -b + epsilon
+        val (inequalities, newAuxillaryVariables) = InequalitySystems.map { inequalitySystem =>
           val y = solver.addBooleanVariable(0.0)
-          val newInequalities = inequalitySystem.map { inequality =>
-            val minValue = inequality.a.filter(_ < 0).sum
-            val newA = inequality.a :+ (minValue - inequality.b)
-            val newX = inequality.x :+ y
-            val newB = minValue
-            ILPInequalityGEQ(newA, newX, newB)
+          val newInequalities = inequalitySystem.flatMap { inequality =>
+            val maxValue = (inequality.a.filter(_ > 0) :+ 0.0).sum
+            val minValue = (inequality.a.filter(_ < 0) :+ 0.0).sum
+            val newA1 = inequality.a :+ (minValue - inequality.b)
+            val newX1 = inequality.x :+ y
+            val newB1 = minValue
+            val newA2 = inequality.a.map(-_) :+ (maxValue + epsilon - inequality.b)
+            val newX2 = inequality.x :+ y
+            val newB2 = -inequality.b + epsilon
+            Set(ILPInequalityGEQ(newA1, newX1, newB1), ILPInequalityGEQ(newA2, newX2, newB2))
           }
           (newInequalities, y)
         }.unzip
         // add a new constraint: at least k constraints should be active
-        inequalities.flatten + ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => -1.0), newAuxillaryVariables.toArray, -c.k)
+        inequalities.flatten +
+          ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => -1.0), newAuxillaryVariables.toArray, -c.k)
+      case c: SaulExactly[V, Any] =>
+        val InequalitySystems = c.constraints.map { processConstraints(_, solver) }
+        // for each inequality ax >= b we introduce a binary variable y
+        // and convert the constraint to ax >= by + (1-y).min(ax) and ax < (b-e)(1-y) + y.max(ax)
+        // which can be written as ax+y(min(ax)-b) >= min(ax) and ax + y(b - e - max(ax)) < b - e
+        // newA1 = [a, min(ax) - b]
+        // newX1 = [x, y]
+        // newB1 = min(ax)
+        // newA2 = [-a,  max(ax) - b]
+        // newX2 = [x, y]
+        // newB2 = -b + epsilon
+        val (inequalities, newAuxillaryVariables) = InequalitySystems.map { inequalitySystem =>
+          val y = solver.addBooleanVariable(0.0)
+          val newInequalities = inequalitySystem.flatMap { inequality =>
+            val maxValue = (inequality.a.filter(_ > 0) :+ 0.0).sum
+            val minValue = (inequality.a.filter(_ < 0) :+ 0.0).sum
+            val newA1 = inequality.a :+ (minValue - inequality.b)
+            val newX1 = inequality.x :+ y
+            val newB1 = minValue
+            val newA2 = inequality.a.map(-_) :+ (maxValue + epsilon - inequality.b)
+            val newX2 = inequality.x :+ y
+            val newB2 = -inequality.b + epsilon
+            Set(ILPInequalityGEQ(newA1, newX1, newB1), ILPInequalityGEQ(newA2, newX2, newB2))
+          }
+          (newInequalities, y)
+        }.unzip
+        // add a new constraint: at least k constraints should be active
+        inequalities.flatten union Set(
+          ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => 1.0), newAuxillaryVariables.toArray, c.k),
+          ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => -1.0), newAuxillaryVariables.toArray, -c.k)
+        )
       //case c: SaulExists[V, Any] =>
       //  val InequalitySystemsAtMost = c.constraints.map { processConstraints(instance, _, solver) }
       case c: SaulForAll[V, Any] =>
@@ -560,7 +533,6 @@ object ConstrainedProblem {
     instances.foreach { c =>
       //      println("-- instance = " + c)
       val confidenceScores = estimator.classifier.scores(c).toArray.map(_.score)
-      //require(confidenceScores.forall(_ >= 0.0), s"Some of the scores returned by $estimator are below zero.")
       val labels = estimator.classifier.scores(c).toArray.map(_.value)
       println("labels = " + labels.toSeq)
       val instanceIndexPerLabel = solver.addDiscreteVariable(confidenceScores)
@@ -619,20 +591,14 @@ class ConstraintObjWrapper[T](coll: Seq[T]) {
   def Exists[U](sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtLeast[T, U] = {
     new SaulAtLeast[T, U](coll.map(sensors).toSet, 1)
   }
-  def AtLeast[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulPairConjunction[T, T] = {
-    //new SaulAtLeast[T, U](coll.map(sensors).toSet, k)
-    val collection = coll.map(sensors).toSet
-    new SaulPairConjunction(
-      new SaulAtLeast[T, U](coll.map(sensors).toSet, k),
-      new SaulAtMost[T, U](coll.map(sensors).map(_.negate).toSet, collection.size - k)
-    )
+  def AtLeast[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtLeast[T, U] = {
+    new SaulAtLeast[T, U](coll.map(sensors).toSet, k)
   }
-  def AtMost[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulPairConjunction[T, T] = {
-    val collection = coll.map(sensors).toSet
-    new SaulPairConjunction(
-      new SaulAtMost[T, U](coll.map(sensors).toSet, k),
-      new SaulAtLeast[T, U](coll.map(sensors).map(_.negate).toSet, collection.size - k)
-    )
+  def AtMost[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtMost[T, U] = {
+    new SaulAtMost[T, U](coll.map(sensors).toSet, k)
+  }
+  def Exactly[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulExactly[T, U] = {
+    new SaulExactly[T, U](coll.map(sensors).toSet, k)
   }
 }
 
@@ -652,10 +618,7 @@ sealed trait SaulConstraint[T] {
 
   def ====>[U](q: SaulConstraint[U]): SaulPairConjunction[T, U] = implies(q)
 
-  def negate: SaulNegation[T] = {
-    new SaulNegation(this)
-  }
-
+  def negate: SaulConstraint[T]
   def unary_! = negate
 }
 
@@ -674,18 +637,44 @@ case class SaulPropositionalEqualityConstraint[T](
   def isTrue2 = is2("true")
   def isFalse2 = is2("false")
   def isNot2(targetValue: String): SaulPropositionalEqualityConstraint[T] = new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, None, Some(targetValue))
+  def negate: SaulConstraint[T] = {
+    if (equalityValOpt.isDefined) {
+      new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, None, equalityValOpt)
+    } else {
+      new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, inequalityValOpt, None)
+    }
+  }
 }
 
-case class SaulPairConjunction[T, U](c1: SaulConstraint[T], c2: SaulConstraint[U]) extends SaulConstraint[T]
+case class SaulPairConjunction[T, U](c1: SaulConstraint[T], c2: SaulConstraint[U]) extends SaulConstraint[T] {
+  def negate: SaulConstraint[T] = new SaulPairDisjunction[T, U](c1.negate, c2.negate)
+}
 
-case class SaulPairDisjunction[T, U](c1: SaulConstraint[T], c2: SaulConstraint[U]) extends SaulConstraint[T]
+case class SaulPairDisjunction[T, U](c1: SaulConstraint[T], c2: SaulConstraint[U]) extends SaulConstraint[T] {
+  def negate: SaulConstraint[T] = new SaulPairConjunction[T, U](c1.negate, c2.negate)
+}
 
-case class SaulForAll[T, U](constraints: Set[SaulConstraint[U]]) extends SaulConstraint[T]
+case class SaulForAll[T, U](constraints: Set[SaulConstraint[U]]) extends SaulConstraint[T] {
+  def negate: SaulConstraint[T] = new SaulForAll[T, U](constraints.map(_.negate))
+}
 
-case class SaulAtLeast[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends SaulConstraint[T]
+case class SaulAtLeast[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends SaulConstraint[T] {
+  def negate: SaulConstraint[T] = new SaulAtMost[T, U](constraints, constraints.size - k)
+}
 
-case class SaulAtMost[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends SaulConstraint[T]
+case class SaulAtMost[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends SaulConstraint[T] {
+  def negate: SaulConstraint[T] = new SaulAtLeast[T, U](constraints, constraints.size - k)
+}
 
-case class SaulImplication[T, U](p: SaulConstraint[T], q: SaulConstraint[U]) extends SaulConstraint[T]
+case class SaulExactly[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends SaulConstraint[T] {
+  def negate: SaulConstraint[T] = new SaulExactly[T, U](constraints.map(_.negate), k)
+}
 
-case class SaulNegation[T](p: SaulConstraint[T]) extends SaulConstraint[T]
+case class SaulImplication[T, U](p: SaulConstraint[T], q: SaulConstraint[U]) extends SaulConstraint[T] {
+  def negate: SaulConstraint[T] = SaulImplication[T, U](p, q.negate)
+}
+
+case class SaulNegation[T](p: SaulConstraint[T]) extends SaulConstraint[T] {
+  // negation of negation
+  def negate: SaulConstraint[T] = p
+}
