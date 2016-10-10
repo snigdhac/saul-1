@@ -18,7 +18,7 @@ class SetCoverTest extends FlatSpec with Matchers {
 
   "SetCover " should " be solved correctly for example.txt " in {
     clearInstances
-    val citiesInstance = new City(prefix("train") + "SetCover/example.txt")
+    val citiesInstance = new City(prefix("main") + "example.txt")
     val neighborhoodInstances = citiesInstance.getNeighborhoods.toList
 
     cities populate List(citiesInstance)
