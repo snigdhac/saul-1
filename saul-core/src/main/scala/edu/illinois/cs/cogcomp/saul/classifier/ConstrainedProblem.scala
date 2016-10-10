@@ -39,7 +39,7 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
   protected case object Min extends OptimizationType
   protected def optimizationType: OptimizationType = Max
 
-  def apply(t: T): String = ""
+  def apply(t: T): String = build(t)
 
   /** The function is used to filter the generated candidates from the head object; remember that the inference starts
     * from the head object. This function finds the objects of type [[T]] which are connected to the target object of
@@ -58,7 +58,7 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
 
   private def deriveTestInstances: Iterable[T] = pathToHead.map(_.from.getTestingInstances).getOrElse(Iterable.empty)
 
-  private def getCandidates(head: HEAD): Seq[T] = {
+  def getCandidates(head: HEAD): Seq[T] = {
     if (tType.equals(headType) || pathToHead.isEmpty) {
       Seq(head.asInstanceOf[T])
     } else {
