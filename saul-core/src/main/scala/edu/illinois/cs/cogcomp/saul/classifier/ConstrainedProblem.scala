@@ -42,17 +42,17 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
   def apply(t: T): String = ""
 
   /** The function is used to filter the generated candidates from the head object; remember that the inference starts
-    * from the head object. This function finds the objects of type `T` which are connected to the target object of
-    * type `HEAD`. If we don't define `filter`, by default it returns all objects connected to `HEAD`.
-    * The filter is useful for the `JointTraining` when we go over all global objects and generate all contained object
+    * from the head object. This function finds the objects of type [[T]] which are connected to the target object of
+    * type [[HEAD]]. If we don't define [[filter]], by default it returns all objects connected to [[HEAD]].
+    * The filter is useful for the JointTraining` when we go over all global objects and generate all contained object
     * that serve as examples for the basic classifiers involved in the `JoinTraining`. It is possible that we do not
     * want to use all possible candidates but some of them, for example when we have a way to filter the negative
     * candidates, this can come in the filter.
     */
   protected def filter(t: T, head: HEAD): Boolean = true
 
-  /** The `pathToHead` returns only one object of type HEAD, if there are many of them i.e. `Iterable[HEAD]` then it
-    * simply returns the `head` of the `Iterable`
+  /** The [[pathToHead]] returns only one object of type HEAD, if there are many of them i.e. `Iterable[HEAD]` then it
+    * simply returns the head of the [[Iterable]]
     */
   protected def pathToHead: Option[Edge[T, HEAD]] = None
 
@@ -85,7 +85,7 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
           logger.info(s"Found head ${l.head} for child $x")
           Some(l.head)
         case _ =>
-          logger.warn("Find too many heads; this is usually because some instances belong to multiple 'head's")
+          logger.warn("Found too many heads; this is usually because some instances belong to multiple 'head's")
           Some(l.head)
       }
     }
@@ -105,72 +105,136 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     }
   }
 
+  def cacheKey[U](u: U): String = u.toString //+ u.hashCode()
+
+  def getInstancesInvolvedInProblem: Option[Set[_]] = {
+    constraintsOpt.map { constraint => getInstancesInvolved(constraint) }
+  }
+
+  def getInstancesInvolved(constraint: SaulConstraint[_]): Set[_] = {
+    constraint match {
+      case c: SaulPropositionalEqualityConstraint[_] =>
+        Set(c.instanceOpt.get)
+      case c: SaulPairConjunction[_, Any] =>
+        getInstancesInvolved(c.c1) ++ getInstancesInvolved(c.c2)
+      case c: SaulPairDisjunction[_, Any] =>
+        getInstancesInvolved(c.c1) ++ getInstancesInvolved(c.c2)
+      case c: SaulNegation[_] =>
+        getInstancesInvolved(c.p)
+      case c: SaulAtLeast[_, Any] =>
+        c.constraints.foldRight(Set[Any]()) {
+          case (singleConstraint, ins) =>
+            ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
+        }
+      case c: SaulAtMost[_, Any] =>
+        c.constraints.foldRight(Set[Any]()) {
+          case (singleConstraint, ins) =>
+            ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
+        }
+      case c: SaulForAll[_, Any] =>
+        c.constraints.foldRight(Set[Any]()) {
+          case (singleConstraint, ins) =>
+            ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
+        }
+    }
+  }
+
   private def build(head: HEAD, t: T)(implicit d: DummyImplicit): String = {
-    // create a new solver instance
-    val solver = getSolverInstance
+    val mainCacheKey = getInstancesInvolvedInProblem.map(cacheKey(_)).toSeq.sorted.mkString("*") + estimator.toString + constraintsOpt
+    logger.info("***************** mainCacheKey = " + mainCacheKey)
+    val resultOpt = cachedResults.get(mainCacheKey)
+    resultOpt match {
+      case Some(estimatorPredictions) =>
+        logger.info(s" *********** Reading the results from cache . . . ")
+        logger.info(s"Cache size " + cachedResults.size)
+        logger.info(s"cachedResults: " + cachedResults)
+        val labelsPerInstances = estimatorPredictions(estimator)
+        println("labelsPerInstances = " + labelsPerInstances)
+        require(labelsPerInstances.contains(cacheKey(t)), s"Does not contain the cache key for ${cacheKey(t)}")
+        labelsPerInstances.get(cacheKey(t)).get
+      case None =>
+        logger.info(s" *********** Inference $mainCacheKey has not been cached; running inference . . . ")
 
-    // populate the instances connected to head
-    val candidates = getCandidates(head)
-    println("*** candidates = " + candidates)
-    addVariablesToInferenceProblem(candidates, estimator, solver)
+        // create a new solver instance
+        val solver = getSolverInstance
+        solver.setMaximize(optimizationType == Max)
 
-    println("estimatorToSolverLabelMap = " + estimatorToSolverLabelMap)
+        // populate the instances connected to head
+        val candidates = getCandidates(head)
+        //    println("*** candidates = " + candidates)
+        addVariablesToInferenceProblem(candidates, estimator, solver)
 
-    // populate the constraints and relevant variables
-    //println("constraintsOpt = ")
-    println(constraintsOpt)
-    constraintsOpt.foreach {
-      case constraints =>
-        //println("constraints = ")
-        //        println(constraints)
-        val inequalities = processConstraints(constraints, solver)
-        //        inequalities.foreach { inequality =>
-        //          solver.addLessThanConstraint(inequality.x, inequality.a, inequality.b)
+        //    println("estimatorToSolverLabelMap = " + estimatorToSolverLabelMap)
+
+        // populate the constraints and relevant variables
+        //println("constraintsOpt = ")
+        //    println(constraintsOpt)
+        //    println(constraintsOpt)
+        constraintsOpt.foreach {
+          case constraints =>
+            println("constraints = ")
+            println(constraints)
+            val inequalities = processConstraints(constraints, solver)
+            //        inequalities.foreach { inequality =>
+            //          solver.addLessThanConstraint(inequality.x, inequality.a, inequality.b)
+            //        }
+            println("final inequalities  . .  . ")
+            inequalities.foreach { ineq =>
+              println("------")
+              println("ineq.x = " + ineq.x.toSeq)
+              println("ineq.a = " + ineq.a.toSeq)
+              println("ineq.b = " + ineq.b)
+              solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
+            }
+        }
+
+        solver.solve()
+
+        val estimatorSpecificMap = estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
+
+        println("***** estimatorToSolverLabelMap")
+        println(estimatorToSolverLabelMap)
+
+        // println(" ----- after solving it ------ ")
+        //        (0 to 11).foreach { int =>
+        //          println("int = " + int)
+        //          println("solver.getIntegerValue(int) = " + solver.getIntegerValue(int))
+        //          println("-------")
         //        }
-        println("final inequalities  . .  . ")
-        inequalities.foreach { ineq =>
-          println("------")
-          println("ineq.x = " + ineq.x.toSeq)
-          println("ineq.a = " + ineq.a.toSeq)
-          println("ineq.b = " + ineq.b)
-          solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
+
+        val labelsPerEstimatorPerInstance = estimatorToSolverLabelMap.mapValues { instanceLabelMap =>
+          instanceLabelMap.map {
+            case (c, indexLabelPairs) =>
+              val instanceKey = cacheKey(c)
+              val predictedLabel = indexLabelPairs.collectFirst {
+                case (ind, label) if solver.getIntegerValue(ind) == 1.0 => label
+              }.get
+              instanceKey -> predictedLabel
+          }
+        }
+
+        cachedResults.put(mainCacheKey, labelsPerEstimatorPerInstance)
+
+        //println("# of candidates: " + candidates.length)
+        //println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.size)
+        //println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.get(estimator).get.size)
+        println("***** estimatorSpecificMap = ")
+        println(estimatorSpecificMap)
+        estimatorSpecificMap.get(t) match {
+          case Some(indexLabelPairs) =>
+            val values = indexLabelPairs.map {
+              case (ind, label) =>
+                println(s"ind=$ind / label=$label / solver.getIntegerValue(ind)=${solver.getIntegerValue(ind)}")
+                solver.getIntegerValue(ind)
+            }
+            assert(values.sum == 1, "exactly one label should be active.")
+
+            indexLabelPairs.collectFirst {
+              case (ind, label) if solver.getIntegerValue(ind) == 1.0 => label
+            }.get
+          case None => throw new Exception("instance is not cached ... weird! :-/ ")
         }
     }
-
-    solver.solve()
-
-    val estimatorSpecificMap = estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
-
-    println(" ----- after solving it ------ ")
-    (1 to 30).foreach{ int =>
-      println("solver.getIntegerValue(int) = " + solver.getIntegerValue(int))
-      println("solver.getBooleanValue(int) = " + solver.getBooleanValue(int))
-      println("-------")
-    }
-
-    //println("# of candidates: " + candidates.length)
-    //println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.size)
-    //println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.get(estimator).get.size)
-    estimatorSpecificMap.get(t) match {
-      case Some(indexLabelPairs) =>
-        val values = indexLabelPairs.map {
-          case (ind, label) =>
-            solver.getIntegerValue(ind)
-        }
-        assert(values.sum == 1, "exactly one label should be active.")
-
-        indexLabelPairs.collectFirst {
-          case (ind, label) if solver.getIntegerValue(ind) == 1.0 => label
-        }.get
-      case None => throw new Exception("instance is not cached ... weird! :-/ ")
-    }
-
-    /*val name = head.toString + head.hashCode()
-    if(InferenceManager.problemNames.contains(name)){
-
-    } else {
-      logger.warn(s"Inference $name has not been cached; running inference . . . ")
-    }*/
   }
 
   //def solve(): Boolean = ??? /// solver.solve()
@@ -315,7 +379,7 @@ object ConstrainedProblem {
   def processConstraints[V <: Any](saulConstraint: SaulConstraint[V], solver: ILPSolver)(implicit tag: ClassTag[V]): Set[ILPInequalityGEQ] = {
 
     //println("SaulConstraint: " + saulConstraint)
-/*    saulConstraint match {
+    /*    saulConstraint match {
       case c: SaulPropositionalConstraint[V] =>
         addVariablesToInferenceProblem(Seq(instance), c.estimator, solver)
       case _ => // do nothing
@@ -331,14 +395,15 @@ object ConstrainedProblem {
         // estimates per instance
         val estimatorScoresMap = estimatorToSolverLabelMap.get(c.estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
 
-        println("****** c.instanceOpt.get = " + c.instanceOpt.get)
+        //        println("****** c.instanceOpt.get = " + c.instanceOpt.get)
         val (ilpIndices, labels) = estimatorScoresMap.get(c.instanceOpt.get) match {
           case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.unzip
           case None =>
             val confidenceScores = c.estimator.classifier.scores(c).toArray.map(_.score)
             val labels = c.estimator.classifier.scores(c.instanceOpt.get).toArray.map(_.value)
             val indicesPerLabels = solver.addDiscreteVariable(confidenceScores)
-            estimatorScoresMap += (c.instanceOpt.get -> indicesPerLabels.zip(labels) )
+            estimatorScoresMap += (c.instanceOpt.get -> indicesPerLabels.zip(labels))
+            println(" ---> adding: estimatorScoresMap = " + estimatorScoresMap)
             estimatorToSolverLabelMap.put(c.estimator, estimatorScoresMap)
             (indicesPerLabels.toSeq, labels.toSeq)
         }
@@ -361,10 +426,11 @@ object ConstrainedProblem {
           val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.equalityValOpt.get => idx }
           val x = ilpIndices(labelIndexOpt.getOrElse(throw new Exception(s"the corresponding index to label ${c.equalityValOpt.get} not found")))
 
-          // 1.0 x >= 1 : possible only when x = 1
-          val a = Array(1.0)
-          val b = 1.0
-          Set(ILPInequalityGEQ(a, Array(x), b))
+          // 1x == 1; which can be written as
+          // (a) +1x >= +1
+          // (b) -1x >= -1
+          // ILPInequalityGEQ(Array(-1.0), Array(x), -1.0)
+          Set(ILPInequalityGEQ(Array(1.0), Array(x), 1.0), ILPInequalityGEQ(Array(-1.0), Array(x), -1.0))
         } else {
           require(
             c.estimator.classifier.allowableValues().toSet.contains(c.inequalityValOpt.get),
@@ -372,10 +438,10 @@ object ConstrainedProblem {
           )
           val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.inequalityValOpt.get => idx }
           val x = ilpIndices(labelIndexOpt.getOrElse(throw new Exception(s"the corresponding index to label ${c.equalityValOpt.get} not found")))
-          val a = Array(1.0)
-          val b = 1.0
-          // -1 x >= 0 : possible only when x = 0
-          Set(ILPInequalityGEQ(a, Array(x), b))
+          // 1 x == 0 : possible only when x = 0, which can be written as
+          // (a) +1 x >= 0
+          // (b) -1 x >= 0
+          Set(ILPInequalityGEQ(Array(1.0), Array(x), 0.0), ILPInequalityGEQ(Array(-1.0), Array(x), 0.0))
         }
       case c: SaulPairConjunction[V, Any] =>
         val InequalitySystem1 = processConstraints(c.c1, solver)
@@ -423,20 +489,20 @@ object ConstrainedProblem {
         // newA = [a, min(ax)-b]
         // newX = [x, y]
         // newB = min(ax)
-        println("estimatorToSolverLabelMap = " + estimatorToSolverLabelMap)
-        println("c.constraints = " + c.constraints)
+        //        println("estimatorToSolverLabelMap = " + estimatorToSolverLabelMap)
+        //        println("c.constraints = " + c.constraints)
         val InequalitySystemsAtLeast = c.constraints.map { processConstraints(_, solver) }
-        println("InequalitySystemsAtLeast = ")
-        println(InequalitySystemsAtLeast)
-        InequalitySystemsAtLeast.foreach{
-          _.foreach{ ins =>
-            println("a = " + ins.a.toSeq)
-            println("x = " + ins.x.toSeq)
-            println("b = " + ins.b)
+        //        println("InequalitySystemsAtLeast = ")
+        //        println(InequalitySystemsAtLeast)
+        InequalitySystemsAtLeast.foreach {
+          _.foreach { ins =>
+            //            println("a = " + ins.a.toSeq)
+            //            println("x = " + ins.x.toSeq)
+            //            println("b = " + ins.b)
           }
         }
         val (inequalities, newAuxillaryVariables) = InequalitySystemsAtLeast.map { inequalitySystem =>
-          val y = solver.addBooleanVariable(-1.0)
+          val y = solver.addBooleanVariable(0.0)
           val newInequalities = inequalitySystem.map { inequality =>
             val minValue = (inequality.a.filter(_ < 0) :+ 0.0).sum
             val newA = inequality.a :+ (minValue - inequality.b)
@@ -492,13 +558,14 @@ object ConstrainedProblem {
 
     // adding the estimates to the solver and to the map
     instances.foreach { c =>
-      println("-- instance = " + c)
+      //      println("-- instance = " + c)
       val confidenceScores = estimator.classifier.scores(c).toArray.map(_.score)
       //require(confidenceScores.forall(_ >= 0.0), s"Some of the scores returned by $estimator are below zero.")
       val labels = estimator.classifier.scores(c).toArray.map(_.value)
       println("labels = " + labels.toSeq)
       val instanceIndexPerLabel = solver.addDiscreteVariable(confidenceScores)
       println("instanceIndexPerLabel = " + instanceIndexPerLabel.toSeq)
+      println(" ---> adding: estimatorScoresMap2 = " + estimatorScoresMap)
       if (!estimatorScoresMap.contains(c)) {
         estimatorScoresMap += (c -> instanceIndexPerLabel.zip(labels).toSeq)
       }
@@ -513,8 +580,10 @@ object ConstrainedProblem {
 
   import collection._
 
-  // cached results
-  //  val cachedResults = mutable.Map[String, mutable.Map[String, Int]]()
+  /** Contains cache of problems already solved. The key is the head object, which maps to instances and their
+    * predicted values in the output of inference
+    */
+  val cachedResults = mutable.Map[String, Map[LBJLearnerEquivalent, Map[String, String]]]()
 
   // for each estimator, maps the label of the estimator, to the integer label of the solver
   val estimatorToSolverLabelMap = mutable.Map[LBJLearnerEquivalent, mutable.Map[_, Seq[(Int, String)]]]()
@@ -550,11 +619,20 @@ class ConstraintObjWrapper[T](coll: Seq[T]) {
   def Exists[U](sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtLeast[T, U] = {
     new SaulAtLeast[T, U](coll.map(sensors).toSet, 1)
   }
-  def AtLeast[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtLeast[T, U] = {
-    new SaulAtLeast[T, U](coll.map(sensors).toSet, k)
+  def AtLeast[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulPairConjunction[T, T] = {
+    //new SaulAtLeast[T, U](coll.map(sensors).toSet, k)
+    val collection = coll.map(sensors).toSet
+    new SaulPairConjunction(
+      new SaulAtLeast[T, U](coll.map(sensors).toSet, k),
+      new SaulAtMost[T, U](coll.map(sensors).map(_.negate).toSet, collection.size - k)
+    )
   }
-  def AtMost[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtMost[T, U] = {
-    new SaulAtMost[T, U](coll.map(sensors).toSet, k)
+  def AtMost[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulPairConjunction[T, T] = {
+    val collection = coll.map(sensors).toSet
+    new SaulPairConjunction(
+      new SaulAtMost[T, U](coll.map(sensors).toSet, k),
+      new SaulAtLeast[T, U](coll.map(sensors).map(_.negate).toSet, collection.size - k)
+    )
   }
 }
 
@@ -567,16 +645,9 @@ sealed trait SaulConstraint[T] {
     new SaulPairDisjunction[T, U](this, cons)
   }
 
-  //  def implies[U](q: SaulConstraint[U]): SaulImplication[T, U] = {
-  //    new SaulImplication[T, U](this, q)
-  //  }
-  //
-  //  def ====>[U](q: SaulConstraint[U]): SaulImplication[T, U] = implies(q)
-
   def implies[U](q: SaulConstraint[U]): SaulPairConjunction[T, U] = {
-    //new SaulImplication[T, U](this, q)
     // p --> q can be modelled as p or not(q)
-    SaulPairConjunction[T, U](this, SaulNegation(q))
+    SaulPairConjunction[T, U](this, q.negate)
   }
 
   def ====>[U](q: SaulConstraint[U]): SaulPairConjunction[T, U] = implies(q)
