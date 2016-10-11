@@ -4,6 +4,7 @@
   * Developed by: The Cognitive Computations Group, University of Illinois at Urbana-Champaign
   * http://cogcomp.cs.illinois.edu/
   */
+/*
 package edu.illinois.cs.cogcomp.saul.classifier
 
 import edu.illinois.cs.cogcomp.lbjava.learn.{ LinearThresholdUnit, SparseNetworkLearner }
@@ -39,7 +40,7 @@ object JointTrainSparseNetwork {
       difference = 0
       allHeads.zipWithIndex.foreach {
         case (h, idx) =>
-          {
+          {if
             if (idx % 5000 == 0)
               logger.info(s"Training: $idx examples inferred.")
 
@@ -107,3 +108,4 @@ object JointTrainSparseNetwork {
     }
   }
 }
+*/

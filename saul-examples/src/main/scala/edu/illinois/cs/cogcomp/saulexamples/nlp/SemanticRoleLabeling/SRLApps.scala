@@ -9,7 +9,7 @@ package edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling
 import java.io.File
 
 import edu.illinois.cs.cogcomp.core.utilities.configuration.ResourceManager
-import edu.illinois.cs.cogcomp.saul.classifier.{ ClassifierUtils, JointTrainSparseNetwork }
+import edu.illinois.cs.cogcomp.saul.classifier.{ ClassifierUtils }
 import edu.illinois.cs.cogcomp.saul.util.Logging
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers._
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLConstrainedClassifiers.argTypeConstraintClassifier
@@ -148,7 +148,7 @@ object RunningApps extends App with Logging {
         argumentTypeLearner.modelDir = modelDir + expName
         val outputFile = modelDir + srlPredictionsFile
         logger.info("Global training... ")
-        JointTrainSparseNetwork(sentences, argTypeConstraintClassifier :: Nil, 100, true)
+        //JointTrainSparseNetwork(sentences, argTypeConstraintClassifier :: Nil, 100, true)
         argumentTypeLearner.save()
         argTypeConstraintClassifier.test(relations.getTestingInstances, outputFile, 200, exclude = "candidate")
     }

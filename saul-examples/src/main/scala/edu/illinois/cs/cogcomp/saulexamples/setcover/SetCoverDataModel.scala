@@ -10,6 +10,7 @@ import edu.illinois.cs.cogcomp.lbjava.learn.Learner
 import edu.illinois.cs.cogcomp.saul.classifier.{ ConstrainedProblem, SaulConstraint }
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
+import SaulConstraint._
 
 object SetCoverSolverDataModel extends DataModel {
 
@@ -20,8 +21,6 @@ object SetCoverSolverDataModel extends DataModel {
   val cityContainsNeighborhoods = edge(cities, neighborhoods)
 
   cityContainsNeighborhoods.populateWith((c, n) => c == n.getParentCity)
-
-  import SaulConstraint._
 
   /** definition of the constraints */
   val containStation: LBJLearnerEquivalent = new LBJLearnerEquivalent {
@@ -36,13 +35,13 @@ object SetCoverSolverDataModel extends DataModel {
     containStation on2 n isTrue2
   }
 
-  def allCityNeiborhoodsAreCovered = { x: City =>
+  def allCityNeighborhoodsAreCovered = { x: City =>
     x.getNeighborhoods.ForAll { n: Neighborhood =>
       neighborhoodContainsStation(n) or4 atLeastANeighborOfNeighborhoodIsCovered(n)
     }
   }
 
-  def containsStationConstraint = SetCoverSolverDataModel.cities.ForAll { x: City => allCityNeiborhoodsAreCovered(x) }
+  def containsStationConstraint = SetCoverSolverDataModel.cities.ForAll { x: City => allCityNeighborhoodsAreCovered(x) }
 }
 
 object ConstrainedContainsStation extends ConstrainedProblem[Neighborhood, City] {

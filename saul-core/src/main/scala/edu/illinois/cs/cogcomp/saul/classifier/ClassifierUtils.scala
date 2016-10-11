@@ -117,7 +117,27 @@ object ClassifierUtils extends Logging {
       testResults
     }
 
-    def apply[T <: AnyRef](testInstances: Iterable[T], c: ConstrainedClassifier[T, _]*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit): Seq[Results] = {
+    def apply(c: ConstrainedProblem[_, _]*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit, d4: DummyImplicit, d5: DummyImplicit): Seq[Results] = {
+      val testResults = c.map { learner =>
+        logger.info(evalSeparator)
+        logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+        learner.test()
+      }
+      logger.info(evalSeparator)
+      testResults
+    }
+
+    def apply[T <: AnyRef](testInstances: Iterable[T], c: ConstrainedClassifier[T, _]*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit, d4: DummyImplicit, d5: DummyImplicit, d6: DummyImplicit, d7: DummyImplicit): Seq[Results] = {
+      val testResults = c.map { learner =>
+        logger.info(evalSeparator)
+        logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+        learner.test(testInstances)
+      }
+      logger.info(evalSeparator)
+      testResults
+    }
+
+    def apply[T <: AnyRef](testInstances: Iterable[T], c: ConstrainedProblem[T, _]*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit): Seq[Results] = {
       val testResults = c.map { learner =>
         logger.info(evalSeparator)
         logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
@@ -128,6 +148,17 @@ object ClassifierUtils extends Logging {
     }
 
     def apply[T <: AnyRef](instanceClassifierPairs: (Iterable[T], ConstrainedClassifier[T, _])*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit, d4: DummyImplicit): Seq[Results] = {
+      val testResults = instanceClassifierPairs.map {
+        case (testInstances, learner) =>
+          logger.info(evalSeparator)
+          logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+          learner.test(testInstances)
+      }
+      logger.info(evalSeparator)
+      testResults
+    }
+
+    def apply[T <: AnyRef](instanceClassifierPairs: (Iterable[T], ConstrainedProblem[T, _])*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit, d4: DummyImplicit, d5: DummyImplicit, d6: DummyImplicit): Seq[Results] = {
       val testResults = instanceClassifierPairs.map {
         case (testInstances, learner) =>
           logger.info(evalSeparator)
@@ -174,6 +205,12 @@ object ClassifierUtils extends Logging {
           InitSparseNetwork(node, constrainedLearner)
       }
     }
+    //    def apply[HEAD <: AnyRef](node: Node[HEAD], cl: ConstrainedProblem[_, HEAD]*) = {
+    //      cl.map {
+    //        constrainedLearner =>
+    //          InitSparseNetwork(node, constrainedLearner)
+    //      }
+    //    }
   }
   /** some utility functions for playing arounds results of classifiers */
   private def resultToList(someResult: AbstractResult): List[Double] = {

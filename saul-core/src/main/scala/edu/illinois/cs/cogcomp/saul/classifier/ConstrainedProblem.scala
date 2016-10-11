@@ -7,10 +7,13 @@
 package edu.illinois.cs.cogcomp.saul.classifier
 
 import edu.illinois.cs.cogcomp.infer.ilp.{ OJalgoHook, GurobiHook, ILPSolver }
+import edu.illinois.cs.cogcomp.lbjava.classify.TestDiscrete
 import edu.illinois.cs.cogcomp.lbjava.infer.BalasHook
 import edu.illinois.cs.cogcomp.saul.datamodel.edge.Edge
 import edu.illinois.cs.cogcomp.saul.datamodel.node.Node
 import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
+import edu.illinois.cs.cogcomp.saul.parser.IterableToLBJavaParser
+import edu.illinois.cs.cogcomp.saul.test.TestWithStorage
 import edu.illinois.cs.cogcomp.saul.util.Logging
 
 import scala.collection.{ mutable, Iterable }
@@ -39,6 +42,8 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
   protected case object Min extends OptimizationType
   protected def optimizationType: OptimizationType = Max
 
+  def getClassSimpleNameForClassifier = this.getClass.getSimpleName
+
   def apply(t: T): String = build(t)
 
   /** The function is used to filter the generated candidates from the head object; remember that the inference starts
@@ -56,7 +61,17 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     */
   protected def pathToHead: Option[Edge[T, HEAD]] = None
 
-  private def deriveTestInstances: Iterable[T] = pathToHead.map(_.from.getTestingInstances).getOrElse(Iterable.empty)
+  private def deriveTestInstances: Iterable[T] = {
+    pathToHead.map(edge => edge.from)
+      .orElse({
+        estimator match {
+          case clf: Learnable[T] => Some(clf.node)
+          case _ => logger.error("pathToHead is not provided and the onClassifier is not a Learnable!"); None
+        }
+      })
+      .map(node => node.getTestingInstances)
+      .getOrElse(Iterable.empty)
+  }
 
   def getCandidates(head: HEAD): Seq[T] = {
     if (tType.equals(headType) || pathToHead.isEmpty) {
@@ -143,17 +158,6 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
         }
     }
   }
-
-  //  def simplifyConstraint(constraint: SaulConstraint[_]): SaulConstraint[_] = {
-  //    constraint match {
-  //      case c: SaulNegation[_] =>
-  //        c.p match {
-  //          case d: SaulAtMost[_, _] => new SaulAtLeast[_, _](d.constraints.asInstanceOf[Set[SaulConstraint[Any]]], d.constraints.size - d.k)
-  //          //case d: SaulAtLeast[_, _] => new SaulAtMost[_, _](d.constraints, d.constraints.size - d.k)
-  //        }
-  //      case default => constraint
-  //    }
-  //  }
 
   private def build(head: HEAD, t: T)(implicit d: DummyImplicit): String = {
     val mainCacheKey = getInstancesInvolvedInProblem.map(cacheKey(_)).toSeq.sorted.mkString("*") + estimator.toString + constraintsOpt
@@ -262,7 +266,7 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     *
     * @return Seq of ???
     */
-  /*  def test(): Results = {
+  def test(): Results = {
     test(deriveTestInstances)
   }
 
@@ -275,12 +279,13 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     */
   def test(testData: Iterable[T] = null, outFile: String = null, outputGranularity: Int = 0, exclude: String = ""): Results = {
     println()
-
+    println("size of test data = " + testData.size)
     val testReader = new IterableToLBJavaParser[T](if (testData == null) deriveTestInstances else testData)
     testReader.reset()
+    println("testReader.data.size = " + testReader.data.size)
 
     val tester: TestDiscrete = new TestDiscrete()
-    TestWithStorage.test(tester, classifier, onClassifier.getLabeler, testReader, outFile, outputGranularity, exclude)
+    TestWithStorage.test(tester, estimator.classifier, estimator.getLabeler, testReader, outFile, outputGranularity, exclude)
     val perLabelResults = tester.getLabels.map {
       label =>
         ResultPerLabel(label, tester.getF1(label), tester.getPrecision(label), tester.getRecall(label),
@@ -289,8 +294,7 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     val overalResultArray = tester.getOverallStats()
     val overalResult = OverallResult(overalResultArray(0), overalResultArray(1), overalResultArray(2))
     Results(perLabelResults, ClassifierUtils.getAverageResults(perLabelResults), overalResult)
-  }*/
-
+  }
 }
 
 object ConstrainedProblem {
