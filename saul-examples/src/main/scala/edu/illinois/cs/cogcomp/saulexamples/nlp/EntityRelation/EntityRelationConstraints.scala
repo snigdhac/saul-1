@@ -9,11 +9,9 @@ package edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation
 import edu.illinois.cs.cogcomp.saul.classifier.SaulConstraint
 import edu.illinois.cs.cogcomp.saulexamples.EntityMentionRelation.datastruct.ConllRelation
 import EntityRelationClassifiers._
+import SaulConstraint._
 
 object EntityRelationConstraints {
-
-  import SaulConstraint._
-
   // if x is works-for relation, it shouldn't be lives-in relation.
   def relationArgumentConstraints = EntityRelationDataModel.pairs.ForAll { x: ConllRelation =>
     worksForConstraint(x) and4 livesInConstraint(x) and4 worksForImpliesNotLivesIn(x)
@@ -38,7 +36,7 @@ object EntityRelationConstraints {
   // TODO: create constrained classifiers for these constraints
   // if x is located-relation, its first argument must be a person or organization, while its second argument
   // must be a location
-  def locatedInConstrint(x: ConllRelation) = {
+  def locatedInConstraint(x: ConllRelation) = {
     (LocatedInClassifier on2 x isTrue2) ====>
       (((PersonClassifier on2 x.e1 isTrue2) or4 (OrganizationClassifier on2 x.e1 isTrue2)) and4 (LocationClassifier on2 x.e2 isTrue2))
   }

@@ -6,13 +6,13 @@
   */
 package edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling
 
-import java.io.File
-
 import edu.illinois.cs.cogcomp.core.utilities.configuration.ResourceManager
-import edu.illinois.cs.cogcomp.saul.classifier.{ ClassifierUtils }
+import edu.illinois.cs.cogcomp.saul.classifier.ClassifierUtils
 import edu.illinois.cs.cogcomp.saul.util.Logging
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers._
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLConstrainedClassifiers.argTypeConstraintClassifier
+
+import java.io.File
 
 object SRLApps extends Logging {
   import SRLConfigurator._
