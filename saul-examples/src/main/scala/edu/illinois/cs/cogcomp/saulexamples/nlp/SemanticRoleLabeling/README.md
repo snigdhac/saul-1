@@ -59,16 +59,16 @@ Here we describe the configurations accompanied in this package and the results 
 In the following lines `Pred.` stands for "Predicate" and  `Cand.` stands for "Candidate". 
 
 
-  | Predicate   |      Argument        |  Model                   | Name |
-  | ----------- | -------------------- | ------------------------ | ---- |
-  | Gold Pred.  |  Gold Boundaries     | Argument Type Classifier |aTr   |
-  | Gold Pred.  |  XuPalmer Candidates | Argument identifier      |bTr   |
-  | Gold Pred.  |  XuPalmer Candidates | Argument Type Classifier |cTr   |
-  | Pred. Cand. |    NA                | Predicate Classifier     |dTr   |
-  | Pred. Cand. |  XuPalmer Candidates | Argument identifier      |eTr   |
-  | Pred. Cand  |  XuPalmer Candidates | Argument Type Classifier |fTr   |
-  | Gold Pred.  |  Gold Boundries      | Argument Type Classifier |jTr   |
-  | Gold Pred.  | Argument Identifier  | Argument Type Classifier |pTr   |
+| Predicate   |      Argument        |  Model                   | Name |
+| -----------| -------------------- | ------------------------ | ---- |
+| Gold Pred.  |  Gold Boundaries     | Argument Type Classifier | aTr   |
+| Gold Pred.  |  XuPalmer Candidates | Argument identifier      | bTr   |
+| Gold Pred.  |  XuPalmer Candidates | Argument Type Classifier | cTr   |
+| Predicted Cand. |    NA                | Predicate Classifier     | dTr   |
+| Predicted Cand. |  XuPalmer Candidates | Argument identifier      | eTr   |
+| Predicted Cand.  |  XuPalmer Candidates | Argument Type Classifier | fTr   |
+| Gold Pred.  |  Gold Boundries      | Argument Type Classifier | jTr   |
+| Gold Pred.  | Argument Identifier  | Argument Type Classifier | pTr   |
 
 
 #### Training independent models
