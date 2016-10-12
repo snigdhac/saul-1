@@ -126,7 +126,7 @@ In the following lines `Pred.` stands for "Predicate" and  `Cand.` stands for "C
    Accuracy    85.351   -      -      -     14479
 </pre>
 
-  - [x] **[bTr]** Train `Argument identifier` given XuPalmerCandidates
+  - [x] **[bTr]** Train `Argument identifier` given Xue-Palmer candidates
 
 <pre>
 
@@ -137,7 +137,7 @@ In the following lines `Pred.` stands for "Predicate" and  `Cand.` stands for "C
 
 </pre>
 
-  - [x] **[cTr]** Train  `Argument Type Classifier` given XuPalmerCandidates
+  - [x] **[cTr]** Train  `Argument Type Classifier` given Xue-Palmer candidates
 
  argument classifier test results:
 
@@ -207,7 +207,7 @@ In the following lines `Pred.` stands for "Predicate" and  `Cand.` stands for "C
    Accuracy    99.265   -      -      -      7208
 </pre>
 
-   - [x] **[eTr]** Train `Argument identifier` given XuPalmerCandidates
+   - [x] **[eTr]** Train `Argument identifier` given Xue-Palmer Candidates
    
 <pre>
   Label   Precision Recall   F1   LCount PCount
@@ -217,7 +217,9 @@ In the following lines `Pred.` stands for "Predicate" and  `Cand.` stands for "C
     ----------------------------------------------
     Accuracy    97.317   -      -      -     55193
 </pre>
-      - [x] **[fTr]**  Train `Argument Type Classifier` given XuPalmerCandidates
+
+   - [x] **[fTr]**  Train `Argument Type Classifier` given Xue-Palmer candidates
+   
 <pre>
   argument classifier test results:  Label   Precision Recall   F1   LCount PCount
   -----------------------------------------------
@@ -270,7 +272,9 @@ In the following lines `Pred.` stands for "Predicate" and  `Cand.` stands for "C
   Overall      82.479 80.793 81.627  14479  14183
   Accuracy     93.921   -      -      -     55193
 </pre>
-     - [x] **[gTr]** Train `Argument Type Classifier` separately for main roles and adjuncts (if needed)
+
+   - [x] **[gTr]** Train `Argument Type Classifier` separately for main roles and adjuncts (if needed)
+
 <pre>
   argument classifier test results:  Label   Precision Recall   F1   LCount PCount
   -----------------------------------------------
@@ -577,7 +581,7 @@ In the following lines `Pred.` stands for "Predicate" and  `Cand.` stands for "C
 
    - [ ] **[aTrJ]** Train **dTr, eTr, fTr** jointly
       * Add constraints gradually and train various models considering subsets of constraints
-    - [ ] **[aTr]**
+   - [ ] **[aTr]**
 
 #### Fourth phase: testing joint models
 
