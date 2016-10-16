@@ -94,7 +94,10 @@ class DummyConstrainedInference(someConstraint: Some[SaulConstraint[Instance]], 
   override def solverType = OJAlgo
 }
 
-// TODO: implication
+// TODO:
+// implication,
+// two classifiers same value on one instance;
+// a classifier same value on two instances
 
 class inferenceTest extends FlatSpec with Matchers {
   import DummyDataModel._

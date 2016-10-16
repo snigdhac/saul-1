@@ -156,6 +156,8 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
           case (singleConstraint, ins) =>
             ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
         }
+      case c: SaulEstimatorPairEqualityConstraint[_] =>
+        Set(c.instance)
     }
   }
 
@@ -380,6 +382,118 @@ object ConstrainedProblem {
           // (b) -1 x >= 0
           Set(ILPInequalityGEQ(Array(-1.0), Array(x), 0.0)) //, ILPInequalityGEQ(Array(1.0), Array(x), 0.0))
         }
+      case c: SaulEstimatorPairEqualityConstraint[V] =>
+        assert(c.estimator2Opt.isDefined, "the second estimator is not defined for estimator-pair constraint. Weird . . . ")
+
+        // add the missing variables to the map
+        addVariablesToInferenceProblem(Seq(c.instance), c.estimator1, solver)
+        addVariablesToInferenceProblem(Seq(c.instance), c.estimator2Opt.get, solver)
+
+        // estimates per instance
+        val estimatorScoresMap1 = estimatorToSolverLabelMap.get(c.estimator1).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
+        val estimatorScoresMap2 = estimatorToSolverLabelMap.get(c.estimator2Opt.get).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
+
+        val labelToIndices1 = estimatorScoresMap1.get(c.instance) match {
+          case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.map(_.swap).toMap
+          case None => throw new Exception("The instance hasn't been seen??")
+        }
+
+        val labelToIndices2 = estimatorScoresMap2.get(c.instance) match {
+          case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.map(_.swap).toMap
+          case None => throw new Exception("The instance hasn't been seen??")
+        }
+
+        // this requirement might be an overkill, but keeping it for now.
+        require(
+          labelToIndices1.keySet == labelToIndices2.keySet,
+          "the label set for the two classifiers is not the same"
+        )
+
+        val yAll = solver.addDiscreteVariable(Array.fill(labelToIndices1.keySet.size) { 0 })
+
+        val labels = labelToIndices1.keySet.toSeq
+        labels.indices.flatMap { idx =>
+          val label = labels(idx)
+          val y = yAll(idx)
+          val variable1 = labelToIndices1(label)
+          val variable2 = labelToIndices2(label)
+
+          if (c.equalsOpt.get) {
+            // for each variable, if y is active, that variable should also be active:
+            // 1 variable >= 1 y
+            Set(
+              ILPInequalityGEQ(Array(1.0, -1.0), Array(variable1, y), 0.0),
+              ILPInequalityGEQ(Array(1.0, -1.0), Array(variable2, y), 0.0)
+            )
+          } else {
+            // for each variable, if y is active, that variable should also be active:
+            // variable >= y  which is, variable - y >= 0
+            // 1 - variable >= 1 y which is, -variable -y >= -1
+            Set(
+              ILPInequalityGEQ(Array(1.0, -1.0), Array(variable1, y), 0.0),
+              ILPInequalityGEQ(Array(-1.0, -1.0), Array(variable1, y), -1.0),
+              ILPInequalityGEQ(Array(1.0, -1.0), Array(variable2, y), 0.0),
+              ILPInequalityGEQ(Array(-1.0, -1.0), Array(variable2, y), -1.0)
+            )
+          }
+        }.toSet
+
+      case c: SaulInstancePairEqualityConstraint[V] =>
+        assert(c.instance2Opt.isDefined, "the second instance is not defined for estimator-pair constraint. Weird . . . ")
+
+        // add the missing variables to the map
+        addVariablesToInferenceProblem(Seq(c.instance1), c.estimator, solver)
+        addVariablesToInferenceProblem(Seq(c.instance2Opt.get), c.estimator, solver)
+
+        // estimates per instance
+        val estimatorScoresMap = estimatorToSolverLabelMap.get(c.estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
+
+        val labelToIndices1 = estimatorScoresMap.get(c.instance1) match {
+          case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.map(_.swap).toMap
+          case None => throw new Exception("The instance hasn't been seen??")
+        }
+
+        val labelToIndices2 = estimatorScoresMap.get(c.instance2Opt.get) match {
+          case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.map(_.swap).toMap
+          case None => throw new Exception("The instance hasn't been seen??")
+        }
+
+        // this requirement might be an overkill, but keeping it for now.
+        require(
+          labelToIndices1.keySet == labelToIndices2.keySet,
+          "the label set for the two classifiers is not the same; " +
+            "although they belong to the same classifier; weird . . . "
+        )
+
+        val yAll = solver.addDiscreteVariable(Array.fill(labelToIndices1.keySet.size) { 0 })
+
+        val labels = labelToIndices1.keySet.toSeq
+        labels.indices.flatMap { idx =>
+          val label = labels(idx)
+          val y = yAll(idx)
+          val variable1 = labelToIndices1(label)
+          val variable2 = labelToIndices2(label)
+
+          if (c.equalsOpt.get) {
+            // for each variable, if y is active, that variable should also be active:
+            // 1 variable >= 1 y
+            Set(
+              ILPInequalityGEQ(Array(1.0, -1.0), Array(variable1, y), 0.0),
+              ILPInequalityGEQ(Array(1.0, -1.0), Array(variable2, y), 0.0)
+            )
+          } else {
+            // for each variable, if y is active, that variable should also be active:
+            // variable >= y  which is, variable - y >= 0
+            // 1 - variable >= 1 y which is, -variable -y >= -1
+            Set(
+              ILPInequalityGEQ(Array(1.0, -1.0), Array(variable1, y), 0.0),
+              ILPInequalityGEQ(Array(-1.0, -1.0), Array(variable1, y), -1.0),
+              ILPInequalityGEQ(Array(1.0, -1.0), Array(variable2, y), 0.0),
+              ILPInequalityGEQ(Array(-1.0, -1.0), Array(variable2, y), -1.0)
+            )
+          }
+        }.toSet
+
       case c: SaulPairConjunction[V, Any] =>
         val InequalitySystem1 = processConstraints(c.c1, solver)
         val InequalitySystem2 = processConstraints(c.c2, solver)
@@ -513,10 +627,12 @@ object ConstrainedProblem {
           ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => 1.0), newAuxillaryVariables.toArray, c.k),
           ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => -1.0), newAuxillaryVariables.toArray, -c.k)
         )
-      //case c: SaulExists[V, Any] =>
-      //  val InequalitySystemsAtMost = c.constraints.map { processConstraints(instance, _, solver) }
+
       case c: SaulForAll[V, Any] =>
         c.constraints.flatMap { processConstraints(_, solver) }
+
+      case c: SaulImplication[_, _] =>
+        throw new Exception("Saul implicaton is converted to other operations. ")
     }
   }
 
@@ -570,22 +686,40 @@ object ConstrainedProblem {
 
 object SaulConstraint {
   implicit class LearnerToFirstOrderConstraint(estimator: LBJLearnerEquivalent) {
+    // connecting a classifier to a specific instance
     def on2[T](newInstance: T)(implicit tag: ClassTag[T]): SaulPropositionalEqualityConstraint[T] = {
       new SaulPropositionalEqualityConstraint[T](estimator, Some(newInstance), None, None)
     }
+    def on3[T](newInstance: T)(implicit tag: ClassTag[T]): SaulEstimatorPairEqualityConstraint[T] = {
+      new SaulEstimatorPairEqualityConstraint[T](estimator, None, newInstance, None)
+    }
+    def on4[T](newInstance: T)(implicit tag: ClassTag[T]): SaulInstancePairEqualityConstraint[T] = {
+      new SaulInstancePairEqualityConstraint[T](estimator, newInstance, None, None)
+    }
   }
 
+  // collection of target object types
   implicit def FirstOrderConstraint[T <: AnyRef](coll: Traversable[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
-
   implicit def FirstOrderConstraint[T <: AnyRef](coll: Set[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
-
   implicit def FirstOrderConstraint[T <: AnyRef](coll: java.util.Collection[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.asScala.toSeq)
-
   implicit def FirstOrderConstraint[T <: AnyRef](coll: mutable.LinkedHashSet[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
-
   implicit def FirstOrderConstraint[T <: AnyRef](node: Node[T]): ConstraintObjWrapper[T] = {
     new ConstraintObjWrapper[T](node.getAllInstances.toSeq)
   }
+
+  // collection of constraints
+  implicit def createConstraintCollection[T <: AnyRef, U <: AnyRef](coll: Traversable[SaulConstraint[U]]): ConstraintCollection[T, U] = new ConstraintCollection[T, U](coll.toSet)
+  implicit def createConstraintCollection[T <: AnyRef, U <: AnyRef](coll: Set[SaulConstraint[U]]): ConstraintCollection[T, U] = new ConstraintCollection[T, U](coll)
+  implicit def createConstraintCollection[T <: AnyRef, U <: AnyRef](coll: java.util.Collection[SaulConstraint[U]]): ConstraintCollection[T, U] = new ConstraintCollection[T, U](coll.asScala.toSet)
+  implicit def createConstraintCollection[T <: AnyRef, U <: AnyRef](coll: mutable.LinkedHashSet[SaulConstraint[U]]): ConstraintCollection[T, U] = new ConstraintCollection[T, U](coll.toSet)
+}
+
+class ConstraintCollection[T, U](coll: Set[SaulConstraint[U]]) {
+  def ForAll = new SaulForAll[T, U](coll)
+  def Exists = new SaulAtLeast[T, U](coll, 1)
+  def AtLeast(k: Int) = new SaulAtLeast[T, U](coll, k)
+  def AtMost(k: Int) = new SaulAtMost[T, U](coll, k)
+  def Exactly(k: Int) = new SaulExactly[T, U](coll, k)
 }
 
 class ConstraintObjWrapper[T](coll: Seq[T]) {
@@ -648,6 +782,51 @@ case class SaulPropositionalEqualityConstraint[T](
       new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, inequalityValOpt, None)
     }
   }
+  def isOneOf(values: Array[String]): SaulAtLeast[T, T] = {
+    val equalityConst: Array[SaulPropositionalEqualityConstraint[T]] = values.map { v => new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, Some(v), None) }
+    new SaulAtLeast[T, T](equalityConst.toSet, 1)
+  }
+}
+
+// the two estimators should have the same prediction on the given instance
+case class SaulEstimatorPairEqualityConstraint[T](
+  estimator1: LBJLearnerEquivalent,
+  estimator2Opt: Option[LBJLearnerEquivalent],
+  instance: T,
+  equalsOpt: Option[Boolean]
+) {
+  def equalsTo(estimator2: LBJLearnerEquivalent) = new SaulEstimatorPairEqualityConstraint[T](
+    this.estimator1,
+    Some(estimator2),
+    this.instance,
+    Some(true)
+  )
+  def differentFrom(estimator2: LBJLearnerEquivalent) = new SaulEstimatorPairEqualityConstraint[T](
+    this.estimator1,
+    Some(estimator2),
+    this.instance,
+    Some(false)
+  )
+}
+
+case class SaulInstancePairEqualityConstraint[T](
+  estimator: LBJLearnerEquivalent,
+  instance1: T,
+  instance2Opt: Option[T],
+  equalsOpt: Option[Boolean]
+) {
+  def equalsTo(instance2: T) = new SaulInstancePairEqualityConstraint[T](
+    this.estimator,
+    this.instance1,
+    Some(instance2),
+    Some(true)
+  )
+  def differentFrom(instance2: T) = new SaulInstancePairEqualityConstraint[T](
+    this.estimator,
+    this.instance1,
+    Some(instance2),
+    Some(false)
+  )
 }
 
 case class SaulPairConjunction[T, U](c1: SaulConstraint[T], c2: SaulConstraint[U]) extends SaulConstraint[T] {

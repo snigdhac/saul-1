@@ -42,20 +42,16 @@ object SRLConstraints {
 
   val values = Array("R-A1", "R-A2", "R-A3", "R-A4", "R-A5", "R-AA", "R-AM-ADV", "R-AM-CAU", "R-AM-EXT", "R-AM-LOC", "R-AM-MNR", "R-AM-PNC")
   def r_arg_Constraint(x: TextAnnotation) = {
-    var a: FirstOrderConstraint = null
-    a = new FirstOrderConstant(true)
-    (sentences(x) ~> sentencesToRelations ~> relationsToPredicates).foreach { y =>
-      val argCandList = (predicates(y) ~> -relationsToPredicates).toList
-      argCandList.foreach { t: Relation =>
-        for (i <- values.indices)
-          a = a and ( ((argumentTypeLearner on t) is values(i)) ==>
-            argCandList.filterNot(x => x.equals(t))._exists {
-              k: Relation => (argumentTypeLearner on k) is values(i).substring(2)
-            })
-        a
-      }
-    }
-    a
+    val constraints = for{
+      y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
+      argCandList = (predicates(y) ~> -relationsToPredicates).toList
+      t: Relation <- argCandList
+      i <- values.indices
+    } yield ((argumentTypeLearner on2 t) is2 values(i)) ====>
+        argCandList.filterNot(x => x.equals(t)).Exists {
+          k: Relation => (argumentTypeLearner on2 k) is2 values(i).substring(2)
+        }
+    constraints.ForAll
   }
 
   val values = Array("C-A1", "C-A2", "C-A3", "C-A4", "C-A5", "C-AA", "C-AM-DIR", "C-AM-LOC", "C-AM-MNR", "C-AM-NEG", "C-AM-PNC")
@@ -84,25 +80,22 @@ object SRLConstraints {
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
       argLegalList = legalArguments(y)
       z <- argCandList
-    } yield argLegalList._exists { t: String => argumentTypeLearner on z is t } or
-      (argumentTypeLearner on z is "candidate")
-    constraints.toSeq._forall(a => a)
+    } yield argLegalList.Exists { t: String => argumentTypeLearner on2 z is2 t } or4
+      (argumentTypeLearner on2 z is2 "candidate")
+    constraints.ForAll
   }
 
   val values = Array("A0", "A1", "A2", "A3", "A4", "A5", "AA")
+  // Predicates have at most one argument of each type i.e. there shouldn't be any two arguments with the same type for each predicate
   def noDuplicate(x: TextAnnotation) {
-    // Predicates have at most one argument of each type i.e. there shouldn't be any two arguments with the same type for each predicate
-    var a: FirstOrderConstraint = null
-    a = new FirstOrderConstant(true)
-    (sentences(x) ~> sentencesToRelations ~> relationsToPredicates).foreach { y =>
-      val argCandList = (predicates(y) ~> -relationsToPredicates).toList
-      for (t1 <- 0 until argCandList.size - 1) {
-        for (t2 <- t1 + 1 until argCandList.size) {
-          a = a and (((argumentTypeLearner on argCandList.get(t1)) in values) ==> (((argumentTypeLearner on argCandList.get(t1)) isNot (argumentTypeLearner on argCandList.get(t2)))))
-        }
-      }
+    for{
+      y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
+      argCandList = (predicates(y) ~> -relationsToPredicates).toList
+      t1 <- 0 until argCandList.size - 1
+      t2 <- t1 + 1 until argCandList.size
     }
-    a
+      yield ((argumentTypeLearner on2 argCandList.get(t1)) isOneOf values) ====> ((argumentTypeLearner on3 argCandList.get(t1)) equalsTo argumentTypeLearner )
+//    ((argumentTypeLearner on argCandList.get(t1)) in values) ==> ((argumentTypeLearner on argCandList.get(t1)) isNot (argumentTypeLearner on argCandList.get(t2))
   }
 
   val r_and_c_args = sentences.ForAll { x: TextAnnotation =>
