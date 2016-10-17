@@ -19,22 +19,17 @@ import scala.collection.JavaConversions._
 class InferenceQuantifierTests extends FlatSpec with Matchers {
 
   object SomeDM extends DataModel {
-
     val cities = node[City]
-
     val neighborhoods = node[Neighborhood]
-
     val cityContainsNeighborhoods = edge(cities, neighborhoods)
-
     cityContainsNeighborhoods.populateWith((c, n) => c == n.getParentCity)
 
-    /** definition of the constraints */
     val containStation = new ContainsStation()
-
     val containStationLBJEquivalent: LBJLearnerEquivalent = new LBJLearnerEquivalent {
       override val classifier: Learner = containStation
     }
 
+    /** definition of the constraints */
     def neighborhoodContainsStation(n: Neighborhood) = containStationLBJEquivalent on n isTrue
 
     def atLeastSomeNeighborsAreCoveredConstraint = cities.ForAll { x: City =>

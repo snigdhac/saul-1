@@ -308,7 +308,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     */
   def test(testData: Iterable[T] = null, outFile: String = null, outputGranularity: Int = 0, exclude: String = ""): Results = {
     println()
-    println("size of test data = " + testData.size)
+    //println("size of test data = " + testData.size)
     val testReader = new IterableToLBJavaParser[T](if (testData == null) deriveTestInstances else testData)
     testReader.reset()
     println("testReader.data.size = " + testReader.data.size)

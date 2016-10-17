@@ -93,7 +93,7 @@ object SRLConstraints {
     constraints.ForAll
   }
 
-  val r_and_c_args = sentences.ForAll { x: TextAnnotation =>
+  def r_and_c_args = sentences.ForAll { x: TextAnnotation =>
     r_arg_Constraint(x) and c_arg_Constraint(x) and legal_arguments_Constraint(x) and noDuplicate(x)
   }
 }
