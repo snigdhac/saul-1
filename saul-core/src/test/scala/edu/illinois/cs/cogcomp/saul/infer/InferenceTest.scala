@@ -102,9 +102,6 @@ class DummyConstrainedInference(someConstraint: Some[Constraint[Instance]], clas
   override def solverType = OJAlgo
 }
 
-// TODO:
-// implication,
-
 class inferenceTest extends FlatSpec with Matchers {
   import DummyDataModel._
 
