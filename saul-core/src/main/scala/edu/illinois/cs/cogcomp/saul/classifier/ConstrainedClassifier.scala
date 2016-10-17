@@ -27,7 +27,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   implicit val headType: ClassTag[HEAD]
 ) extends Logging {
 
-  def estimator: LBJLearnerEquivalent
+  def onClassifier: LBJLearnerEquivalent
   protected def constraintsOpt: Option[Constraint[HEAD]] = None
 
   protected sealed trait SolverType
@@ -65,7 +65,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   private def deriveTestInstances: Iterable[T] = {
     pathToHead.map(edge => edge.from)
       .orElse({
-        estimator match {
+        onClassifier match {
           case clf: Learnable[T] => Some(clf.node)
           case _ => logger.error("pathToHead is not provided and the onClassifier is not a Learnable!"); None
         }
@@ -175,7 +175,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
       }
     }
     if (instanceIsInvolvedInConstraint) {
-      val mainCacheKey = instancesInvolved.map(cacheKey(_)).toSeq.sorted.mkString("*") + estimator.toString + constraintsOpt
+      val mainCacheKey = instancesInvolved.map(cacheKey(_)).toSeq.sorted.mkString("*") + onClassifier.toString + constraintsOpt
       logger.info("***************** mainCacheKey = " + mainCacheKey)
       val resultOpt = inferenceManager.cachedResults.get(mainCacheKey)
       resultOpt match {
@@ -183,7 +183,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
           logger.info(s" *********** Reading the results from cache . . . ")
           logger.info(s"Cache size " + inferenceManager.cachedResults.size)
           logger.info(s"cachedResults: " + inferenceManager.cachedResults)
-          val labelsPerInstances = estimatorPredictions(estimator)
+          val labelsPerInstances = estimatorPredictions(onClassifier)
           println("labelsPerInstances = " + labelsPerInstances)
           require(labelsPerInstances.contains(cacheKey(t)), s"Does not contain the cache key for ${cacheKey(t)}")
           labelsPerInstances.get(cacheKey(t)).get
@@ -197,7 +197,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
           // populate the instances connected to head
           val candidates = getCandidates(head)
           //    println("*** candidates = " + candidates)
-          inferenceManager.addVariablesToInferenceProblem(candidates, estimator, solver)
+          inferenceManager.addVariablesToInferenceProblem(candidates, onClassifier, solver)
 
           //    println("estimatorToSolverLabelMap = " + estimatorToSolverLabelMap)
 
@@ -228,7 +228,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
             println(" /////// NOT SOLVED /////// ")
           }
 
-          val estimatorSpecificMap = inferenceManager.estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
+          val estimatorSpecificMap = inferenceManager.estimatorToSolverLabelMap.get(onClassifier).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
 
           println("***** estimatorToSolverLabelMap")
           println(inferenceManager.estimatorToSolverLabelMap)
@@ -276,7 +276,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     } else {
       // if the instance doesn't involve in any constraints, it means that it's a simple non-constrained problem.
       println("getting the label with the highest score . . . ")
-      estimator.classifier.scores(t).highScoreValue()
+      onClassifier.classifier.scores(t).highScoreValue()
     }
   }
 
@@ -305,7 +305,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     println("testReader.data.size = " + testReader.data.size)
 
     val tester: TestDiscrete = new TestDiscrete()
-    TestWithStorage.test(tester, estimator.classifier, estimator.getLabeler, testReader, outFile, outputGranularity, exclude)
+    TestWithStorage.test(tester, onClassifier.classifier, onClassifier.getLabeler, testReader, outFile, outputGranularity, exclude)
     val perLabelResults = tester.getLabels.map {
       label =>
         ResultPerLabel(label, tester.getF1(label), tester.getPrecision(label), tester.getRecall(label),

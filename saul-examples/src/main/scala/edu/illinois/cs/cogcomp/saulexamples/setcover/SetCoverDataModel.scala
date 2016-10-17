@@ -45,7 +45,7 @@ object SetCoverSolverDataModel extends DataModel {
 }
 
 object ConstrainedContainsStation extends ConstrainedClassifier[Neighborhood, City] {
-  override lazy val estimator = SetCoverSolverDataModel.containStation
+  override lazy val onClassifier = SetCoverSolverDataModel.containStation
   override def pathToHead = Some(-SetCoverSolverDataModel.cityContainsNeighborhoods)
   override def constraintsOpt = Some(SetCoverSolverDataModel.containsStationConstraint)
   override def solverType = OJAlgo

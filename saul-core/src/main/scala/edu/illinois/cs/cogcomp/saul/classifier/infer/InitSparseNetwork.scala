@@ -16,15 +16,15 @@ object InitSparseNetwork {
     //this means we are not reading any model into the SparseNetworks
     // but we forget all the models and go over the data to build the right
     // size for the lexicon and the right number of the ltu s
-    cClassifier.estimator.classifier.forget()
-    val iLearner = cClassifier.estimator.classifier.asInstanceOf[SparseNetworkLearner]
+    cClassifier.onClassifier.classifier.forget()
+    val iLearner = cClassifier.onClassifier.classifier.asInstanceOf[SparseNetworkLearner]
     allHeads.foreach {
       head =>
         {
           val candidates: Seq[_] = cClassifier.getCandidates(head)
           candidates.foreach {
             x =>
-              val a = cClassifier.estimator.classifier.getExampleArray(x)
+              val a = cClassifier.onClassifier.classifier.getExampleArray(x)
               val exampleLabels = a(2).asInstanceOf[Array[Int]]
               val label = exampleLabels(0)
               val N = iLearner.getNetwork.size()

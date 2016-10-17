@@ -62,25 +62,25 @@ object JointTrain {
             cls.foreach {
               case classifier: ConstrainedClassifier[_, HEAD] =>
                 val typedC = classifier.asInstanceOf[ConstrainedClassifier[_, HEAD]]
-                val oracle = typedC.estimator.getLabeler
+                val oracle = typedC.onClassifier.getLabeler
 
                 typedC.getCandidates(h) foreach {
                   x =>
                     {
                       def trainOnce() = {
-                        val result = typedC.estimator.classifier.discreteValue(x)
+                        val result = typedC.onClassifier.classifier.discreteValue(x)
                         val trueLabel = oracle.discreteValue(x)
 
                         if (result.equals("true") && trueLabel.equals("false")) {
-                          val a = typedC.estimator.getExampleArray(x)
+                          val a = typedC.onClassifier.getExampleArray(x)
                           val a0 = a(0).asInstanceOf[Array[Int]]
                           val a1 = a(1).asInstanceOf[Array[Double]]
-                          typedC.estimator.classifier.asInstanceOf[LinearThresholdUnit].promote(a0, a1, 0.1)
+                          typedC.onClassifier.classifier.asInstanceOf[LinearThresholdUnit].promote(a0, a1, 0.1)
                         } else if (result.equals("false") && trueLabel.equals("true")) {
-                          val a = typedC.estimator.getExampleArray(x)
+                          val a = typedC.onClassifier.getExampleArray(x)
                           val a0 = a(0).asInstanceOf[Array[Int]]
                           val a1 = a(1).asInstanceOf[Array[Double]]
-                          typedC.estimator.classifier.asInstanceOf[LinearThresholdUnit].demote(a0, a1, 0.1)
+                          typedC.onClassifier.classifier.asInstanceOf[LinearThresholdUnit].demote(a0, a1, 0.1)
                         }
                       }
                       trainOnce()

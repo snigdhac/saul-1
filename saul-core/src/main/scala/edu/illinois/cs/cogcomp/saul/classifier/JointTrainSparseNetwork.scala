@@ -44,16 +44,16 @@ object JointTrainSparseNetwork {
             cls.foreach {
               case classifier: ConstrainedClassifier[_, HEAD] =>
                 val typedClassifier = classifier.asInstanceOf[ConstrainedClassifier[_, HEAD]]
-                val oracle = typedClassifier.estimator.getLabeler
+                val oracle = typedClassifier.onClassifier.getLabeler
 
                 typedClassifier.getCandidates(h) foreach {
                   candidate =>
                     {
                       def trainOnce() = {
-                        val result = typedClassifier.estimator.classifier.discreteValue(candidate)
+                        val result = typedClassifier.onClassifier.classifier.discreteValue(candidate)
                         val trueLabel = oracle.discreteValue(candidate)
-                        val ilearner = typedClassifier.estimator.classifier.asInstanceOf[SparseNetworkLearner]
-                        val lLexicon = typedClassifier.estimator.getLabelLexicon
+                        val ilearner = typedClassifier.onClassifier.classifier.asInstanceOf[SparseNetworkLearner]
+                        val lLexicon = typedClassifier.onClassifier.getLabelLexicon
                         var LTU_actual: Int = 0
                         var LTU_predicted: Int = 0
                         for (i <- 0 until lLexicon.size()) {
@@ -67,7 +67,7 @@ object JointTrainSparseNetwork {
                         // and the LTU of the predicted class should be demoted.
                         if (!result.equals(trueLabel)) //equals("true") && trueLabel.equals("false")   )
                         {
-                          val a = typedClassifier.estimator.getExampleArray(candidate)
+                          val a = typedClassifier.onClassifier.getExampleArray(candidate)
                           val a0 = a(0).asInstanceOf[Array[Int]] //exampleFeatures
                           val a1 = a(1).asInstanceOf[Array[Double]] // exampleValues
                           val exampleLabels = a(2).asInstanceOf[Array[Int]]

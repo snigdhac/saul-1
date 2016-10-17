@@ -117,7 +117,7 @@ object ClassifierUtils extends Logging {
       testResults
     }
 
-    def apply[T <: AnyRef](testInstances: Iterable[T], c: ConstrainedClassifier[T, _]*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit, d4: DummyImplicit, d5: DummyImplicit, d6: DummyImplicit, d7: DummyImplicit): Seq[Results] = {
+    def apply[T <: AnyRef](testInstances: Iterable[T], c: ConstrainedClassifier[T, _]*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit): Seq[Results] = {
       val testResults = c.map { learner =>
         logger.info(evalSeparator)
         logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
