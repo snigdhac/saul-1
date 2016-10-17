@@ -6,11 +6,11 @@
   */
 package edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation
 
-import edu.illinois.cs.cogcomp.saul.classifier.ConstrainedProblem
+import edu.illinois.cs.cogcomp.saul.classifier.ConstrainedClassifier
 import edu.illinois.cs.cogcomp.saulexamples.EntityMentionRelation.datastruct.{ ConllRawToken, ConllRelation }
 
 object EntityRelationConstrainedClassifiers {
-  object OrgConstrainedClassifier extends ConstrainedProblem[ConllRawToken, ConllRelation] {
+  object OrgConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
     override lazy val estimator = EntityRelationClassifiers.OrganizationClassifier
     override def pathToHead = Some(-EntityRelationDataModel.pairTo2ndArg)
     override def constraintsOpt = Some(EntityRelationConstraints.relationArgumentConstraints)
@@ -18,7 +18,7 @@ object EntityRelationConstrainedClassifiers {
     override def solverType = OJAlgo
   }
 
-  object PerConstrainedClassifier extends ConstrainedProblem[ConllRawToken, ConllRelation] {
+  object PerConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
     override lazy val estimator = EntityRelationClassifiers.PersonClassifier
     override def pathToHead = Some(-EntityRelationDataModel.pairTo1stArg)
     override def constraintsOpt = Some(EntityRelationConstraints.relationArgumentConstraints)
@@ -26,7 +26,7 @@ object EntityRelationConstrainedClassifiers {
     override def solverType = OJAlgo
   }
 
-  object LocConstrainedClassifier extends ConstrainedProblem[ConllRawToken, ConllRelation] {
+  object LocConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
     override lazy val estimator = EntityRelationClassifiers.LocationClassifier
     override def pathToHead = Some(-EntityRelationDataModel.pairTo2ndArg)
     override def constraintsOpt = Some(EntityRelationConstraints.relationArgumentConstraints)
@@ -34,13 +34,13 @@ object EntityRelationConstrainedClassifiers {
     override def solverType = OJAlgo
   }
 
-  object WorksForRelationConstrainedClassifier extends ConstrainedProblem[ConllRawToken, ConllRelation] {
+  object WorksForRelationConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
     override lazy val estimator = EntityRelationClassifiers.WorksForClassifier
     override def constraintsOpt = Some(EntityRelationConstraints.relationArgumentConstraints)
     override def solverType = OJAlgo
   }
 
-  object LivesInRelationConstrainedClassifier extends ConstrainedProblem[ConllRawToken, ConllRelation] {
+  object LivesInRelationConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
     override lazy val estimator = EntityRelationClassifiers.LivesInClassifier
     override def constraintsOpt = Some(EntityRelationConstraints.relationArgumentConstraints)
     override def solverType = OJAlgo

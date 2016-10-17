@@ -21,14 +21,14 @@ import scala.reflect.ClassTag
 
 import scala.collection.JavaConverters._
 
-abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
+abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   implicit
   val tType: ClassTag[T],
   implicit val headType: ClassTag[HEAD]
 ) extends Logging {
 
   def estimator: LBJLearnerEquivalent
-  protected def constraintsOpt: Option[SaulConstraint[HEAD]] = None
+  protected def constraintsOpt: Option[Constraint[HEAD]] = None
 
   protected sealed trait SolverType
   protected case object Gurobi extends SolverType
@@ -127,41 +127,41 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
     constraintsOpt.map { constraint => getInstancesInvolved(constraint) }
   }
 
-  def getInstancesInvolved(constraint: SaulConstraint[_]): Set[_] = {
+  def getInstancesInvolved(constraint: Constraint[_]): Set[_] = {
     constraint match {
-      case c: SaulPropositionalEqualityConstraint[_] =>
+      case c: PropositionalEqualityConstraint[_] =>
         Set(c.instanceOpt.get)
-      case c: SaulPairConjunction[_, _] =>
+      case c: PairConjunction[_, _] =>
         getInstancesInvolved(c.c1) ++ getInstancesInvolved(c.c2)
-      case c: SaulPairDisjunction[_, _] =>
+      case c: PairDisjunction[_, _] =>
         getInstancesInvolved(c.c1) ++ getInstancesInvolved(c.c2)
-      case c: SaulNegation[_] =>
+      case c: Negation[_] =>
         getInstancesInvolved(c.p)
-      case c: SaulAtLeast[_, _] =>
+      case c: AtLeast[_, _] =>
         c.constraints.foldRight(Set[Any]()) {
           case (singleConstraint, ins) =>
             ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
         }
-      case c: SaulAtMost[_, _] =>
+      case c: AtMost[_, _] =>
         c.constraints.foldRight(Set[Any]()) {
           case (singleConstraint, ins) =>
             ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
         }
-      case c: SaulForAll[_, _] =>
+      case c: ForAll[_, _] =>
         c.constraints.foldRight(Set[Any]()) {
           case (singleConstraint, ins) =>
             ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
         }
-      case c: SaulExactly[_, _] =>
+      case c: Exactly[_, _] =>
         c.constraints.foldRight(Set[Any]()) {
           case (singleConstraint, ins) =>
             ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
         }
-      case c: SaulEstimatorPairEqualityConstraint[_] =>
+      case c: EstimatorPairEqualityConstraint[_] =>
         Set(c.instance)
-      case c: SaulInstancePairEqualityConstraint[_] =>
+      case c: InstancePairEqualityConstraint[_] =>
         Set(c.instance1, c.instance2Opt.get)
-      case c: SaulImplication[_, _] =>
+      case c: Implication[_, _] =>
         throw new Exception("this constraint should have been rewritten in terms of other constraints. ")
     }
   }
@@ -343,7 +343,7 @@ class InferenceManager {
   // equal to: ax = b
   //case class ILPInequalityEQ(a: Array[Double], x: Array[Int], b: Double) extends ILPInequality
 
-  def processConstraints[V <: Any](saulConstraint: SaulConstraint[V], solver: ILPSolver)(implicit tag: ClassTag[V]): Set[ILPInequalityGEQ] = {
+  def processConstraints[V <: Any](saulConstraint: Constraint[V], solver: ILPSolver)(implicit tag: ClassTag[V]): Set[ILPInequalityGEQ] = {
 
     //println("SaulConstraint: " + saulConstraint)
     /*    saulConstraint match {
@@ -353,7 +353,7 @@ class InferenceManager {
     }*/
 
     saulConstraint match {
-      case c: SaulPropositionalEqualityConstraint[V] =>
+      case c: PropositionalEqualityConstraint[V] =>
         assert(c.instanceOpt.isDefined, "the instance in the constraint should definitely be defined.")
 
         // add the missing variables to the map
@@ -410,7 +410,7 @@ class InferenceManager {
           // (b) -1 x >= 0
           Set(ILPInequalityGEQ(Array(-1.0), Array(x), 0.0)) //, ILPInequalityGEQ(Array(1.0), Array(x), 0.0))
         }
-      case c: SaulEstimatorPairEqualityConstraint[V] =>
+      case c: EstimatorPairEqualityConstraint[V] =>
         assert(c.estimator2Opt.isDefined, "the second estimator is not defined for estimator-pair constraint. Weird . . . ")
 
         // add the missing variables to the map
@@ -466,7 +466,7 @@ class InferenceManager {
           }
         }.toSet
 
-      case c: SaulInstancePairEqualityConstraint[V] =>
+      case c: InstancePairEqualityConstraint[V] =>
         assert(c.instance2Opt.isDefined, "the second instance is not defined for estimator-pair constraint. Weird . . . ")
 
         // add the missing variables to the map
@@ -522,13 +522,13 @@ class InferenceManager {
           }
         }.toSet
 
-      case c: SaulPairConjunction[V, Any] =>
+      case c: PairConjunction[V, Any] =>
         val InequalitySystem1 = processConstraints(c.c1, solver)
         val InequalitySystem2 = processConstraints(c.c2, solver)
 
         // conjunction is simple; you just include all the inequalities
         InequalitySystem1 union InequalitySystem2
-      case c: SaulPairDisjunction[V, Any] => // TODO: how to get rid of these 'Any' types, and maybe replace with _?
+      case c: PairDisjunction[V, Any] => // TODO: how to get rid of these 'Any' types, and maybe replace with _?
         val InequalitySystem1 = processConstraints(c.c1, solver)
         val InequalitySystem2 = processConstraints(c.c2, solver)
         val y1 = solver.addBooleanVariable(0.0)
@@ -558,7 +558,7 @@ class InferenceManager {
         }
         val atLeastOne = ILPInequalityGEQ(Array(1, 1), Array(y1, y2), 1.0)
         InequalitySystem1New union InequalitySystem2New + atLeastOne
-      case c: SaulNegation[V] =>
+      case c: Negation[V] =>
         // change the signs of the coefficients
         val InequalitySystemToBeNegated = processConstraints(c.p, solver)
         InequalitySystemToBeNegated.map { in =>
@@ -566,7 +566,7 @@ class InferenceManager {
           val minusB = -in.b + epsilon
           ILPInequalityGEQ(minusA, in.x, minusB)
         }
-      case c: SaulAtLeast[V, Any] =>
+      case c: AtLeast[V, Any] =>
         val InequalitySystems = c.constraints.map { processConstraints(_, solver) }
         // for each inequality ax >= b we introduce a binary variable y
         // and convert the constraint to ax >= by + (1-y).min(ax) and ax < (b-e)(1-y) + y.max(ax)
@@ -595,7 +595,7 @@ class InferenceManager {
         // add a new constraint: at least k constraints should be active
         inequalities.flatten +
           ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => 1.0), newAuxillaryVariables.toArray, c.k)
-      case c: SaulAtMost[V, Any] =>
+      case c: AtMost[V, Any] =>
         val InequalitySystems = c.constraints.map { processConstraints(_, solver) }
         // for each inequality ax >= b we introduce a binary variable y
         // and convert the constraint to ax >= by + (1-y).min(ax) and ax < (b-e)(1-y) + y.max(ax)
@@ -624,7 +624,7 @@ class InferenceManager {
         // add a new constraint: at least k constraints should be active
         inequalities.flatten +
           ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => -1.0), newAuxillaryVariables.toArray, -c.k)
-      case c: SaulExactly[V, Any] =>
+      case c: Exactly[V, Any] =>
         val InequalitySystems = c.constraints.map { processConstraints(_, solver) }
         // for each inequality ax >= b we introduce a binary variable y
         // and convert the constraint to ax >= by + (1-y).min(ax) and ax < (b-e)(1-y) + y.max(ax)
@@ -656,10 +656,10 @@ class InferenceManager {
           ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => -1.0), newAuxillaryVariables.toArray, -c.k)
         )
 
-      case c: SaulForAll[V, Any] =>
+      case c: ForAll[V, Any] =>
         c.constraints.flatMap { processConstraints(_, solver) }
 
-      case c: SaulImplication[_, _] =>
+      case c: Implication[_, _] =>
         throw new Exception("Saul implicaton is converted to other operations. ")
     }
   }
@@ -699,191 +699,191 @@ class InferenceManager {
   }
 }
 
-object SaulConstraint {
+object Constraint {
   implicit class LearnerToFirstOrderConstraint(estimator: LBJLearnerEquivalent) {
     // connecting a classifier to a specific instance
-    def on2[T](newInstance: T)(implicit tag: ClassTag[T]): SaulPropositionalEqualityConstraint[T] = {
-      new SaulPropositionalEqualityConstraint[T](estimator, Some(newInstance), None, None)
+    def on2[T](newInstance: T)(implicit tag: ClassTag[T]): PropositionalEqualityConstraint[T] = {
+      new PropositionalEqualityConstraint[T](estimator, Some(newInstance), None, None)
     }
-    def on3[T](newInstance: T)(implicit tag: ClassTag[T]): SaulEstimatorPairEqualityConstraint[T] = {
-      new SaulEstimatorPairEqualityConstraint[T](estimator, None, newInstance, None)
+    def on3[T](newInstance: T)(implicit tag: ClassTag[T]): EstimatorPairEqualityConstraint[T] = {
+      new EstimatorPairEqualityConstraint[T](estimator, None, newInstance, None)
     }
-    def on4[T](newInstance: T)(implicit tag: ClassTag[T]): SaulInstancePairEqualityConstraint[T] = {
-      new SaulInstancePairEqualityConstraint[T](estimator, newInstance, None, None)
+    def on4[T](newInstance: T)(implicit tag: ClassTag[T], d1: DummyImplicit): InstancePairEqualityConstraint[T] = {
+      new InstancePairEqualityConstraint[T](estimator, newInstance, None, None)
     }
   }
 
   // collection of target object types
-  implicit def FirstOrderConstraint[T <: AnyRef](coll: Traversable[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
-  implicit def FirstOrderConstraint[T <: AnyRef](coll: Set[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
-  implicit def FirstOrderConstraint[T <: AnyRef](coll: java.util.Collection[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.asScala.toSeq)
-  implicit def FirstOrderConstraint[T <: AnyRef](coll: mutable.LinkedHashSet[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
-  implicit def FirstOrderConstraint[T <: AnyRef](node: Node[T]): ConstraintObjWrapper[T] = {
+  implicit def firstOrderConstraint[T <: AnyRef](coll: Traversable[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
+  implicit def firstOrderConstraint[T <: AnyRef](coll: Set[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
+  implicit def firstOrderConstraint[T <: AnyRef](coll: java.util.Collection[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.asScala.toSeq)
+  implicit def firstOrderConstraint[T <: AnyRef](coll: mutable.LinkedHashSet[T]): ConstraintObjWrapper[T] = new ConstraintObjWrapper[T](coll.toSeq)
+  implicit def firstOrderConstraint[T <: AnyRef](node: Node[T]): ConstraintObjWrapper[T] = {
     new ConstraintObjWrapper[T](node.getAllInstances.toSeq)
   }
 
   // collection of constraints
-  implicit def createConstraintCollection[T <: AnyRef](coll: Traversable[SaulConstraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.toSet)
-  implicit def createConstraintCollection[T <: AnyRef](coll: Set[SaulConstraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll)
-  implicit def createConstraintCollection[T <: AnyRef](coll: java.util.Collection[SaulConstraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.asScala.toSet)
-  implicit def createConstraintCollection[T <: AnyRef](coll: mutable.LinkedHashSet[SaulConstraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.toSet)
+  implicit def createConstraintCollection[T <: AnyRef](coll: Traversable[Constraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.toSet)
+  implicit def createConstraintCollection[T <: AnyRef](coll: Set[Constraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll)
+  implicit def createConstraintCollection[T <: AnyRef](coll: java.util.Collection[Constraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.asScala.toSet)
+  implicit def createConstraintCollection[T <: AnyRef](coll: mutable.LinkedHashSet[Constraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.toSet)
 }
 
-class ConstraintCollection[T, U](coll: Set[SaulConstraint[U]]) {
-  def ForAll = new SaulForAll[T, U](coll)
-  def Exists = new SaulAtLeast[T, U](coll, 1)
-  def AtLeast(k: Int) = new SaulAtLeast[T, U](coll, k)
-  def AtMost(k: Int) = new SaulAtMost[T, U](coll, k)
-  def Exactly(k: Int) = new SaulExactly[T, U](coll, k)
+class ConstraintCollection[T, U](coll: Set[Constraint[U]]) {
+  def ForAll = new ForAll[T, U](coll)
+  def Exists = new AtLeast[T, U](coll, 1)
+  def AtLeast(k: Int) = new AtLeast[T, U](coll, k)
+  def AtMost(k: Int) = new AtMost[T, U](coll, k)
+  def Exactly(k: Int) = new Exactly[T, U](coll, k)
 }
 
 class ConstraintObjWrapper[T](coll: Seq[T]) {
-  def ForAll[U](sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulForAll[T, U] = {
-    new SaulForAll[T, U](coll.map(sensors).toSet)
+  def ForAll[U](sensors: T => Constraint[U])(implicit tag: ClassTag[T]): ForAll[T, U] = {
+    new ForAll[T, U](coll.map(sensors).toSet)
   }
-  def Exists[U](sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtLeast[T, U] = {
-    new SaulAtLeast[T, U](coll.map(sensors).toSet, 1)
+  def Exists[U](sensors: T => Constraint[U])(implicit tag: ClassTag[T]): AtLeast[T, U] = {
+    new AtLeast[T, U](coll.map(sensors).toSet, 1)
   }
-  def AtLeast[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtLeast[T, U] = {
-    new SaulAtLeast[T, U](coll.map(sensors).toSet, k)
+  def AtLeast[U](k: Int)(sensors: T => Constraint[U])(implicit tag: ClassTag[T]): AtLeast[T, U] = {
+    new AtLeast[T, U](coll.map(sensors).toSet, k)
   }
-  def AtMost[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulAtMost[T, U] = {
-    new SaulAtMost[T, U](coll.map(sensors).toSet, k)
+  def AtMost[U](k: Int)(sensors: T => Constraint[U])(implicit tag: ClassTag[T]): AtMost[T, U] = {
+    new AtMost[T, U](coll.map(sensors).toSet, k)
   }
-  def Exactly[U](k: Int)(sensors: T => SaulConstraint[U])(implicit tag: ClassTag[T]): SaulExactly[T, U] = {
-    new SaulExactly[T, U](coll.map(sensors).toSet, k)
+  def Exactly[U](k: Int)(sensors: T => Constraint[U])(implicit tag: ClassTag[T]): Exactly[T, U] = {
+    new Exactly[T, U](coll.map(sensors).toSet, k)
   }
 }
 
-sealed trait SaulConstraint[T] {
-  def and4[U](cons: SaulConstraint[U]) = {
-    new SaulPairConjunction[T, U](this, cons)
+sealed trait Constraint[T] {
+  def and[U](cons: Constraint[U]) = {
+    new PairConjunction[T, U](this, cons)
   }
 
-  def or4[U](cons: SaulConstraint[U]) = {
-    new SaulPairDisjunction[T, U](this, cons)
+  def or[U](cons: Constraint[U]) = {
+    new PairDisjunction[T, U](this, cons)
   }
 
-  def implies[U](q: SaulConstraint[U]): SaulPairConjunction[T, U] = {
+  def implies[U](q: Constraint[U]): PairConjunction[T, U] = {
     // p --> q can be modelled as p or not(q)
-    SaulPairConjunction[T, U](this, q.negate)
+    PairConjunction[T, U](this, q.negate)
   }
 
-  def ====>[U](q: SaulConstraint[U]): SaulPairConjunction[T, U] = implies(q)
+  def ==>[U](q: Constraint[U]): PairConjunction[T, U] = implies(q)
 
-  def negate: SaulConstraint[T]
+  def negate: Constraint[T]
   def unary_! = negate
 }
 
 // zero-th order constraints
-sealed trait SaulPropositionalConstraint[T] extends SaulConstraint[T] {
+sealed trait PropositionalConstraint[T] extends Constraint[T] {
   def estimator: LBJLearnerEquivalent
 }
 
-case class SaulPropositionalEqualityConstraint[T](
+case class PropositionalEqualityConstraint[T](
   estimator: LBJLearnerEquivalent,
   instanceOpt: Option[T],
   equalityValOpt: Option[String],
   inequalityValOpt: Option[String]
-) extends SaulPropositionalConstraint[T] {
-  def is2(targetValue: String): SaulPropositionalEqualityConstraint[T] = new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, Some(targetValue), None)
-  def isTrue2 = is2("true")
-  def isFalse2 = is2("false")
-  def isNot2(targetValue: String): SaulPropositionalEqualityConstraint[T] = new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, None, Some(targetValue))
-  def negate: SaulConstraint[T] = {
+) extends PropositionalConstraint[T] {
+  def is(targetValue: String): PropositionalEqualityConstraint[T] = new PropositionalEqualityConstraint[T](estimator, instanceOpt, Some(targetValue), None)
+  def isTrue = is("true")
+  def isFalse = is("false")
+  def isNot(targetValue: String): PropositionalEqualityConstraint[T] = new PropositionalEqualityConstraint[T](estimator, instanceOpt, None, Some(targetValue))
+  def negate: Constraint[T] = {
     if (equalityValOpt.isDefined) {
-      new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, None, equalityValOpt)
+      new PropositionalEqualityConstraint[T](estimator, instanceOpt, None, equalityValOpt)
     } else {
-      new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, inequalityValOpt, None)
+      new PropositionalEqualityConstraint[T](estimator, instanceOpt, inequalityValOpt, None)
     }
   }
-  def isOneOf(values: Traversable[String]): SaulAtLeast[T, T] = {
-    val equalityConst = values.map { v => new SaulPropositionalEqualityConstraint[T](estimator, instanceOpt, Some(v), None) }
-    new SaulAtLeast[T, T](equalityConst.toSet, 1)
+  def isOneOf(values: Traversable[String]): AtLeast[T, T] = {
+    val equalityConst = values.map { v => new PropositionalEqualityConstraint[T](estimator, instanceOpt, Some(v), None) }
+    new AtLeast[T, T](equalityConst.toSet, 1)
   }
 
-  def isOneOf(values: String*): SaulAtLeast[T, T] = {
+  def isOneOf(values: String*): AtLeast[T, T] = {
     isOneOf(values.toArray)
   }
 }
 
 // the two estimators should have the same prediction on the given instance
-case class SaulEstimatorPairEqualityConstraint[T](
+case class EstimatorPairEqualityConstraint[T](
   estimator1: LBJLearnerEquivalent,
   estimator2Opt: Option[LBJLearnerEquivalent],
   instance: T,
   equalsOpt: Option[Boolean]
-) extends SaulPropositionalConstraint[T] {
-  def equalsTo(estimator2: LBJLearnerEquivalent) = new SaulEstimatorPairEqualityConstraint[T](
+) extends PropositionalConstraint[T] {
+  def equalsTo(estimator2: LBJLearnerEquivalent) = new EstimatorPairEqualityConstraint[T](
     this.estimator1,
     Some(estimator2),
     this.instance,
     Some(true)
   )
-  def differentFrom(estimator2: LBJLearnerEquivalent) = new SaulEstimatorPairEqualityConstraint[T](
+  def differentFrom(estimator2: LBJLearnerEquivalent) = new EstimatorPairEqualityConstraint[T](
     this.estimator1,
     Some(estimator2),
     this.instance,
     Some(false)
   )
   override def estimator: LBJLearnerEquivalent = ???
-  override def negate: SaulConstraint[T] = new SaulEstimatorPairEqualityConstraint(
+  override def negate: Constraint[T] = new EstimatorPairEqualityConstraint(
     estimator1, estimator2Opt, instance, Some(!equalsOpt.get)
   )
 }
 
-case class SaulInstancePairEqualityConstraint[T](
+case class InstancePairEqualityConstraint[T](
   estimator: LBJLearnerEquivalent,
   instance1: T,
   instance2Opt: Option[T],
   equalsOpt: Option[Boolean]
-) extends SaulPropositionalConstraint[T] {
-  def equalsTo(instance2: T) = new SaulInstancePairEqualityConstraint[T](
+) extends PropositionalConstraint[T] {
+  def equalsTo(instance2: T) = new InstancePairEqualityConstraint[T](
     this.estimator,
     this.instance1,
     Some(instance2),
     Some(true)
   )
-  def differentFrom(instance2: T) = new SaulInstancePairEqualityConstraint[T](
+  def differentFrom(instance2: T) = new InstancePairEqualityConstraint[T](
     this.estimator,
     this.instance1,
     Some(instance2),
     Some(false)
   )
-  override def negate: SaulConstraint[T] = new SaulInstancePairEqualityConstraint(
+  override def negate: Constraint[T] = new InstancePairEqualityConstraint(
     estimator, instance1, instance2Opt, Some(!equalsOpt.get)
   )
 }
 
-case class SaulPairConjunction[T, U](c1: SaulConstraint[T], c2: SaulConstraint[U]) extends SaulConstraint[T] {
-  def negate: SaulConstraint[T] = new SaulPairDisjunction[T, U](c1.negate, c2.negate)
+case class PairConjunction[T, U](c1: Constraint[T], c2: Constraint[U]) extends Constraint[T] {
+  def negate: Constraint[T] = new PairDisjunction[T, U](c1.negate, c2.negate)
 }
 
-case class SaulPairDisjunction[T, U](c1: SaulConstraint[T], c2: SaulConstraint[U]) extends SaulConstraint[T] {
-  def negate: SaulConstraint[T] = new SaulPairConjunction[T, U](c1.negate, c2.negate)
+case class PairDisjunction[T, U](c1: Constraint[T], c2: Constraint[U]) extends Constraint[T] {
+  def negate: Constraint[T] = new PairConjunction[T, U](c1.negate, c2.negate)
 }
 
-case class SaulForAll[T, U](constraints: Set[SaulConstraint[U]]) extends SaulConstraint[T] {
-  def negate: SaulConstraint[T] = new SaulForAll[T, U](constraints.map(_.negate))
+case class ForAll[T, U](constraints: Set[Constraint[U]]) extends Constraint[T] {
+  def negate: Constraint[T] = new ForAll[T, U](constraints.map(_.negate))
 }
 
-case class SaulAtLeast[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends SaulConstraint[T] {
-  def negate: SaulConstraint[T] = new SaulAtMost[T, U](constraints, constraints.size - k)
+case class AtLeast[T, U](constraints: Set[Constraint[U]], k: Int) extends Constraint[T] {
+  def negate: Constraint[T] = new AtMost[T, U](constraints, constraints.size - k)
 }
 
-case class SaulAtMost[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends SaulConstraint[T] {
-  def negate: SaulConstraint[T] = new SaulAtLeast[T, U](constraints, constraints.size - k)
+case class AtMost[T, U](constraints: Set[Constraint[U]], k: Int) extends Constraint[T] {
+  def negate: Constraint[T] = new AtLeast[T, U](constraints, constraints.size - k)
 }
 
-case class SaulExactly[T, U](constraints: Set[SaulConstraint[U]], k: Int) extends SaulConstraint[T] {
-  def negate: SaulConstraint[T] = new SaulExactly[T, U](constraints.map(_.negate), k)
+case class Exactly[T, U](constraints: Set[Constraint[U]], k: Int) extends Constraint[T] {
+  def negate: Constraint[T] = new Exactly[T, U](constraints.map(_.negate), k)
 }
 
-case class SaulImplication[T, U](p: SaulConstraint[T], q: SaulConstraint[U]) extends SaulConstraint[T] {
-  def negate: SaulConstraint[T] = SaulImplication[T, U](p, q.negate)
+case class Implication[T, U](p: Constraint[T], q: Constraint[U]) extends Constraint[T] {
+  def negate: Constraint[T] = Implication[T, U](p, q.negate)
 }
 
-case class SaulNegation[T](p: SaulConstraint[T]) extends SaulConstraint[T] {
+case class Negation[T](p: Constraint[T]) extends Constraint[T] {
   // negation of negation
-  def negate: SaulConstraint[T] = p
+  def negate: Constraint[T] = p
 }

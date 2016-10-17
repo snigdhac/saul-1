@@ -7,11 +7,11 @@
 package edu.illinois.cs.cogcomp.saul.classifier.infer
 
 import edu.illinois.cs.cogcomp.lbjava.learn.{ LinearThresholdUnit, SparseNetworkLearner }
-import edu.illinois.cs.cogcomp.saul.classifier.ConstrainedProblem
+import edu.illinois.cs.cogcomp.saul.classifier.ConstrainedClassifier
 import edu.illinois.cs.cogcomp.saul.datamodel.node.Node
 
 object InitSparseNetwork {
-  def apply[HEAD <: AnyRef](node: Node[HEAD], cClassifier: ConstrainedProblem[_, HEAD]) = {
+  def apply[HEAD <: AnyRef](node: Node[HEAD], cClassifier: ConstrainedClassifier[_, HEAD]) = {
     val allHeads = node.getTrainingInstances
     //this means we are not reading any model into the SparseNetworks
     // but we forget all the models and go over the data to build the right

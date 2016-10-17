@@ -16,16 +16,16 @@ object JointTrainSparseNetwork {
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
   var difference = 0
-  def apply[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedProblem[_, HEAD]], init: Boolean)(implicit headTag: ClassTag[HEAD]) = {
+  def apply[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedClassifier[_, HEAD]], init: Boolean)(implicit headTag: ClassTag[HEAD]) = {
     train[HEAD](node, cls, 1, init)
   }
 
-  def apply[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedProblem[_, HEAD]], it: Int, init: Boolean)(implicit headTag: ClassTag[HEAD]) = {
+  def apply[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedClassifier[_, HEAD]], it: Int, init: Boolean)(implicit headTag: ClassTag[HEAD]) = {
     train[HEAD](node, cls, it, init)
   }
 
   @scala.annotation.tailrec
-  def train[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedProblem[_, HEAD]], it: Int, init: Boolean)(implicit headTag: ClassTag[HEAD]): Unit = {
+  def train[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedClassifier[_, HEAD]], it: Int, init: Boolean)(implicit headTag: ClassTag[HEAD]): Unit = {
     // forall members in collection of the head (dm.t) do
     logger.info("Training iteration: " + it)
     if (init) ClassifierUtils.InitializeClassifiers(node, cls: _*)
@@ -42,8 +42,8 @@ object JointTrainSparseNetwork {
               logger.info(s"Training: $idx examples inferred.")
 
             cls.foreach {
-              case classifier: ConstrainedProblem[_, HEAD] =>
-                val typedClassifier = classifier.asInstanceOf[ConstrainedProblem[_, HEAD]]
+              case classifier: ConstrainedClassifier[_, HEAD] =>
+                val typedClassifier = classifier.asInstanceOf[ConstrainedClassifier[_, HEAD]]
                 val oracle = typedClassifier.estimator.getLabeler
 
                 typedClassifier.getCandidates(h) foreach {

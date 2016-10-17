@@ -7,10 +7,10 @@
 package edu.illinois.cs.cogcomp.saulexamples.setcover
 
 import edu.illinois.cs.cogcomp.lbjava.learn.Learner
-import edu.illinois.cs.cogcomp.saul.classifier.{ ConstrainedProblem, SaulConstraint }
+import edu.illinois.cs.cogcomp.saul.classifier.{ Constraint, ConstrainedClassifier }
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
-import SaulConstraint._
+import Constraint._
 
 object SetCoverSolverDataModel extends DataModel {
 
@@ -28,23 +28,23 @@ object SetCoverSolverDataModel extends DataModel {
   }
 
   def atLeastANeighborOfNeighborhoodIsCovered = { n: Neighborhood =>
-    n.getNeighbors.Exists { neighbor: Neighborhood => containStation on2 neighbor isTrue2 }
+    n.getNeighbors.Exists { neighbor: Neighborhood => containStation on2 neighbor isTrue }
   }
 
   def neighborhoodContainsStation = { n: Neighborhood =>
-    containStation on2 n isTrue2
+    containStation on2 n isTrue
   }
 
   def allCityNeighborhoodsAreCovered = { x: City =>
     x.getNeighborhoods.ForAll { n: Neighborhood =>
-      neighborhoodContainsStation(n) or4 atLeastANeighborOfNeighborhoodIsCovered(n)
+      neighborhoodContainsStation(n) or atLeastANeighborOfNeighborhoodIsCovered(n)
     }
   }
 
   def containsStationConstraint = SetCoverSolverDataModel.cities.ForAll { x: City => allCityNeighborhoodsAreCovered(x) }
 }
 
-object ConstrainedContainsStation extends ConstrainedProblem[Neighborhood, City] {
+object ConstrainedContainsStation extends ConstrainedClassifier[Neighborhood, City] {
   override lazy val estimator = SetCoverSolverDataModel.containStation
   override def pathToHead = Some(-SetCoverSolverDataModel.cityContainsNeighborhoods)
   override def constraintsOpt = Some(SetCoverSolverDataModel.containsStationConstraint)

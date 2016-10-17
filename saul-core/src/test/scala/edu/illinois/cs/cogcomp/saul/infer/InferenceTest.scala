@@ -10,12 +10,12 @@ import java.io.PrintStream
 
 import edu.illinois.cs.cogcomp.lbjava.classify.{ FeatureVector, ScoreSet }
 import edu.illinois.cs.cogcomp.lbjava.learn.Learner
-import edu.illinois.cs.cogcomp.saul.classifier.{ ConstrainedProblem, SaulConstraint }
+import edu.illinois.cs.cogcomp.saul.classifier.{ Constraint, ConstrainedClassifier }
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
 import org.scalatest.{ Matchers, FlatSpec }
 
-import SaulConstraint._
+import Constraint._
 
 class StaticClassifier(trueLabelScore: Double) extends Learner("DummyClassifer") {
   override def getInputType: String = { "DummyInstance" }
@@ -59,43 +59,43 @@ object DummyDataModel extends DataModel {
     override val classifier: Learner = new StaticClassifier(-1.0)
   }
 
-  def singleInstanceMustBeTrue(x: Instance) = { classifierNegativeScoreForTrue on2 x isTrue2 }
-  def singleInstanceMustBeFalse(x: Instance) = { classifierPositiveScoreForTrue on2 x isFalse2 }
-  def forAllTrue = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isTrue2 }
-  def forAllFalse = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isFalse2 }
+  def singleInstanceMustBeTrue(x: Instance) = { classifierNegativeScoreForTrue on2 x isTrue }
+  def singleInstanceMustBeFalse(x: Instance) = { classifierPositiveScoreForTrue on2 x isFalse }
+  def forAllTrue = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isTrue }
+  def forAllFalse = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isFalse }
   def forAllOneOfTheLabelsPositiveClassifier = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isOneOf ("true", "true") }
   def forAllOneOfTheLabelsNegativeClassifier = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isOneOf ("true", "true") }
-  def forAllNotFalse = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isNot2 "false" }
-  def forAllNotTrue = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isNot2 "true" }
-  def existsTrue = instanceNode.Exists { x: Instance => classifierNegativeScoreForTrue on2 x isTrue2 }
-  def existsFalse = instanceNode.Exists { x: Instance => classifierPositiveScoreForTrue on2 x isFalse2 }
-  def exatclyTrue(k: Int) = instanceNode.Exactly(k) { x: Instance => classifierPositiveScoreForTrue on2 x isTrue2 }
-  def exatclyFalse(k: Int) = instanceNode.Exactly(k) { x: Instance => classifierPositiveScoreForTrue on2 x isFalse2 }
-  def atLeastTrue(k: Int) = instanceNode.AtLeast(k) { x: Instance => classifierNegativeScoreForTrue on2 x isTrue2 }
-  def atLeastFalse(k: Int) = instanceNode.AtLeast(k) { x: Instance => classifierPositiveScoreForTrue on2 x isFalse2 }
-  def atMostTrue(k: Int) = instanceNode.AtMost(k) { x: Instance => classifierPositiveScoreForTrue on2 x isTrue2 }
-  def atMostFalse(k: Int) = instanceNode.AtMost(k) { x: Instance => classifierNegativeScoreForTrue on2 x isFalse2 }
+  def forAllNotFalse = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isNot "false" }
+  def forAllNotTrue = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isNot "true" }
+  def existsTrue = instanceNode.Exists { x: Instance => classifierNegativeScoreForTrue on2 x isTrue }
+  def existsFalse = instanceNode.Exists { x: Instance => classifierPositiveScoreForTrue on2 x isFalse }
+  def exatclyTrue(k: Int) = instanceNode.Exactly(k) { x: Instance => classifierPositiveScoreForTrue on2 x isTrue }
+  def exatclyFalse(k: Int) = instanceNode.Exactly(k) { x: Instance => classifierPositiveScoreForTrue on2 x isFalse }
+  def atLeastTrue(k: Int) = instanceNode.AtLeast(k) { x: Instance => classifierNegativeScoreForTrue on2 x isTrue }
+  def atLeastFalse(k: Int) = instanceNode.AtLeast(k) { x: Instance => classifierPositiveScoreForTrue on2 x isFalse }
+  def atMostTrue(k: Int) = instanceNode.AtMost(k) { x: Instance => classifierPositiveScoreForTrue on2 x isTrue }
+  def atMostFalse(k: Int) = instanceNode.AtMost(k) { x: Instance => classifierNegativeScoreForTrue on2 x isFalse }
   def classifierHasSameValueOnTwoInstances(x: Instance, y: Instance) = classifierPositiveScoreForTrue on4 x equalsTo y
 
   // negation
-  def forAllFalseWithNegation = instanceNode.ForAll { x: Instance => !(classifierPositiveScoreForTrue on2 x isTrue2) }
+  def forAllFalseWithNegation = instanceNode.ForAll { x: Instance => !(classifierPositiveScoreForTrue on2 x isTrue) }
   def forAllTrueNegated = !forAllTrue
   def atLeastFalseNegated(k: Int) = !atLeastFalse(k)
 
   // conjunction
-  def allTrueAllTrueConjunction = forAllTrue and4 forAllTrue
-  def allTrueAllFalseConjunction = forAllTrue and4 forAllFalse
-  def allFalseAllTrueConjunction = forAllFalse and4 forAllTrue
-  def allFalseAllFalseConjunction = forAllFalse and4 forAllFalse
+  def allTrueAllTrueConjunction = forAllTrue and forAllTrue
+  def allTrueAllFalseConjunction = forAllTrue and forAllFalse
+  def allFalseAllTrueConjunction = forAllFalse and forAllTrue
+  def allFalseAllFalseConjunction = forAllFalse and forAllFalse
 
   // disjunction
-  def allTrueAllTrueDisjunction = forAllTrue or4 forAllTrue
-  def allTrueAllFalseDisjunction = forAllTrue or4 forAllFalse
-  def allFalseAllTrueDisjunction = forAllFalse or4 forAllTrue
-  def allFalseAllFalseDisjunction = forAllFalse or4 forAllFalse
+  def allTrueAllTrueDisjunction = forAllTrue or forAllTrue
+  def allTrueAllFalseDisjunction = forAllTrue or forAllFalse
+  def allFalseAllTrueDisjunction = forAllFalse or forAllTrue
+  def allFalseAllFalseDisjunction = forAllFalse or forAllFalse
 }
 
-class DummyConstrainedInference(someConstraint: Some[SaulConstraint[Instance]], classifier: LBJLearnerEquivalent) extends ConstrainedProblem[Instance, Instance] {
+class DummyConstrainedInference(someConstraint: Some[Constraint[Instance]], classifier: LBJLearnerEquivalent) extends ConstrainedClassifier[Instance, Instance] {
   override lazy val estimator = classifier
   override def pathToHead = None
   override def constraintsOpt = someConstraint
@@ -114,34 +114,34 @@ class inferenceTest extends FlatSpec with Matchers {
   // extra constraints based on data
   // all instances should have the same label
   val classifierHasSameValueOnTwoInstancesInstantiated = {
-    classifierHasSameValueOnTwoInstances(instanceSet(0), instanceSet(1)) and4
-      classifierHasSameValueOnTwoInstances(instanceSet(1), instanceSet(2)) and4
-      classifierHasSameValueOnTwoInstances(instanceSet(2), instanceSet(3)) and4
+    classifierHasSameValueOnTwoInstances(instanceSet(0), instanceSet(1)) and
+      classifierHasSameValueOnTwoInstances(instanceSet(1), instanceSet(2)) and
+      classifierHasSameValueOnTwoInstances(instanceSet(2), instanceSet(3)) and
       classifierHasSameValueOnTwoInstances(instanceSet(3), instanceSet(4))
   }
 
   val allInstancesShouldBeTrue = {
-    classifierHasSameValueOnTwoInstancesInstantiated and4 singleInstanceMustBeTrue(instanceSet(0))
+    classifierHasSameValueOnTwoInstancesInstantiated and singleInstanceMustBeTrue(instanceSet(0))
   }
 
   val trueImpliesTrue = {
-    ((classifierNegativeScoreForTrue on2 instanceSet(0) isTrue2) ====>
-      (classifierNegativeScoreForTrue on2 instanceSet(1) isTrue2)) and4 (classifierNegativeScoreForTrue on2 instanceSet(0) isTrue2)
+    ((classifierNegativeScoreForTrue on2 instanceSet(0) isTrue) ==>
+      (classifierNegativeScoreForTrue on2 instanceSet(1) isTrue)) and (classifierNegativeScoreForTrue on2 instanceSet(0) isTrue)
   }
 
   val trueImpliesFalse = {
-    ((classifierNegativeScoreForTrue on2 instanceSet(0) isTrue2) ====>
-      (classifierNegativeScoreForTrue on2 instanceSet(1) isFalse2)) and4 (classifierNegativeScoreForTrue on2 instanceSet(0) isTrue2)
+    ((classifierNegativeScoreForTrue on2 instanceSet(0) isTrue) ==>
+      (classifierNegativeScoreForTrue on2 instanceSet(1) isFalse)) and (classifierNegativeScoreForTrue on2 instanceSet(0) isTrue)
   }
 
   val falseImpliesTrue = {
-    ((classifierNegativeScoreForTrue on2 instanceSet(0) isFalse2) ====>
-      (classifierNegativeScoreForTrue on2 instanceSet(1) isTrue2)) and4 (classifierNegativeScoreForTrue on2 instanceSet(0) isFalse2)
+    ((classifierNegativeScoreForTrue on2 instanceSet(0) isFalse) ==>
+      (classifierNegativeScoreForTrue on2 instanceSet(1) isTrue)) and (classifierNegativeScoreForTrue on2 instanceSet(0) isFalse)
   }
 
   val falseImpliesFalse = {
-    ((classifierNegativeScoreForTrue on2 instanceSet(0) isFalse2) ====>
-      (classifierNegativeScoreForTrue on2 instanceSet(1) isFalse2)) and4 (classifierNegativeScoreForTrue on2 instanceSet(0) isFalse2)
+    ((classifierNegativeScoreForTrue on2 instanceSet(0) isFalse) ==>
+      (classifierNegativeScoreForTrue on2 instanceSet(1) isFalse)) and (classifierNegativeScoreForTrue on2 instanceSet(0) isFalse)
   }
 
   // single instance constraint

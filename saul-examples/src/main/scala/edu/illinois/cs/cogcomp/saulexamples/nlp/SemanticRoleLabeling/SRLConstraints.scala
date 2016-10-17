@@ -8,13 +8,13 @@ package edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling
 
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation._
-import edu.illinois.cs.cogcomp.saul.classifier.SaulConstraint
+import edu.illinois.cs.cogcomp.saul.classifier.Constraint
 import edu.illinois.cs.cogcomp.saulexamples.data.XuPalmerCandidateGenerator
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLApps.srlDataModelObject._
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers.{ argumentTypeLearner, argumentXuIdentifierGivenApredicate, predicateClassifier }
 
 import scala.collection.JavaConversions._
-import SaulConstraint._
+import Constraint._
 
 object SRLConstraints {
   def noOverlap = sentences.ForAll { x: TextAnnotation =>
@@ -24,18 +24,18 @@ object SRLConstraints {
       x.getView(ViewNames.TOKENS).getConstituents.ForAll {
         t: Constituent =>
           val contains = argCandList.filter(_.getTarget.doesConstituentCover(t))
-          contains.AtMost(1) { p: Relation => argumentTypeLearner on2 p is2 "candidate" }
+          contains.AtMost(1) { p: Relation => argumentTypeLearner on2 p is "candidate" }
       }
     }
   }
 
   def arg_IdentifierClassifier_Constraint = relations.ForAll { x: Relation =>
-    (argumentXuIdentifierGivenApredicate on2 x isFalse2) ====> (argumentTypeLearner on2 x is2 "candidate")
+    (argumentXuIdentifierGivenApredicate on2 x isFalse) ==> (argumentTypeLearner on2 x is "candidate")
   }
 
   def predArg_IdentifierClassifier_Constraint = relations.ForAll { x: Relation =>
-    (predicateClassifier on2 x.getSource isTrue2) and4 (argumentXuIdentifierGivenApredicate on2 x isTrue2) ====>
-      (argumentTypeLearner on2 x isNot2 "candidate")
+    (predicateClassifier on2 x.getSource isTrue) and (argumentXuIdentifierGivenApredicate on2 x isTrue) ==>
+      (argumentTypeLearner on2 x isNot "candidate")
   }
 
   def r_arg_Constraint(x: TextAnnotation) = {
@@ -45,9 +45,9 @@ object SRLConstraints {
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
       t: Relation <- argCandList
       i <- values.indices
-    } yield ((argumentTypeLearner on2 t) is2 values(i)) ====>
+    } yield ((argumentTypeLearner on2 t) is values(i)) ==>
       argCandList.filterNot(x => x.equals(t)).Exists {
-        k: Relation => (argumentTypeLearner on2 k) is2 values(i).substring(2)
+        k: Relation => (argumentTypeLearner on2 k) is values(i).substring(2)
       }
     constraints.ForAll
   }
@@ -60,11 +60,11 @@ object SRLConstraints {
       sortedCandidates = argCandList.sortBy(x => x.getTarget.getStartSpan)
       (t, ind) <- sortedCandidates.zipWithIndex.drop(1)
       i <- values.indices
-      labelOnT = (argumentTypeLearner on2 t) is2 values(i)
+      labelOnT = (argumentTypeLearner on2 t) is values(i)
       labelsIsValid = sortedCandidates.subList(0, ind).Exists {
-        k: Relation => (argumentTypeLearner on2 k) is2 values(i).substring(2)
+        k: Relation => (argumentTypeLearner on2 k) is values(i).substring(2)
       }
-    } yield labelOnT ====> labelsIsValid
+    } yield labelOnT ==> labelsIsValid
     constraints.ForAll
   }
 
@@ -74,8 +74,8 @@ object SRLConstraints {
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
       argLegalList = legalArguments(y)
       z <- argCandList
-    } yield argLegalList.Exists { t: String => argumentTypeLearner on2 z is2 t } or4
-      (argumentTypeLearner on2 z is2 "candidate")
+    } yield argLegalList.Exists { t: String => argumentTypeLearner on2 z is t } or
+      (argumentTypeLearner on2 z is "candidate")
     constraints.ForAll
   }
 
@@ -89,12 +89,12 @@ object SRLConstraints {
       t2 <- t1 + 1 until argCandList.size
       predictionOnT1IsValid = (argumentTypeLearner on2 argCandList.get(t1)) isOneOf values
       t1AndT2HaveSameLabels = (argumentTypeLearner on4 argCandList.get(t1)) equalsTo argCandList.get(t2)
-    } yield predictionOnT1IsValid ====> t1AndT2HaveSameLabels
+    } yield predictionOnT1IsValid ==> t1AndT2HaveSameLabels
     constraints.ForAll
   }
 
   val r_and_c_args = sentences.ForAll { x: TextAnnotation =>
-    r_arg_Constraint(x) and4 c_arg_Constraint(x) and4 legal_arguments_Constraint(x) and4 noDuplicate(x)
+    r_arg_Constraint(x) and c_arg_Constraint(x) and legal_arguments_Constraint(x) and noDuplicate(x)
   }
 }
 
