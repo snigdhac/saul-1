@@ -9,8 +9,9 @@ package edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames
 import edu.illinois.cs.cogcomp.nlp.tokenizer.StatefulTokenizer
 import edu.illinois.cs.cogcomp.nlp.utility.TokenizerTextAnnotationBuilder
-import edu.illinois.cs.cogcomp.saul.classifier.ClassifierUtils
+import edu.illinois.cs.cogcomp.saul.classifier.{ JointTrainSparseNetwork, ClassifierUtils }
 import edu.illinois.cs.cogcomp.saul.util.Logging
+import edu.illinois.cs.cogcomp.saulexamples.EntityMentionRelation.datastruct.ConllRelation
 import edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation.EntityRelationClassifiers._
 import edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation.EntityRelationConstrainedClassifiers._
 import edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation.EntityRelationDataModel._
@@ -125,21 +126,21 @@ object EntityRelationApp extends Logging {
     // joint training
     val jointTrainIteration = 5
     logger.info(s"Joint training $jointTrainIteration iterations. ")
-    //    JointTrainSparseNetwork.train[ConllRelation](
-    //      pairs,
-    //      PerConstrainedClassifier :: OrgConstrainedClassifier :: LocConstrainedClassifier ::
-    //        WorksFor_PerOrg_ConstrainedClassifier :: LivesIn_PerOrg_relationConstrainedClassifier :: Nil,
-    //      jointTrainIteration, true
-    //    )
+    JointTrainSparseNetwork.train[ConllRelation](
+      pairs,
+      PerConstrainedClassifier :: OrgConstrainedClassifier :: LocConstrainedClassifier ::
+        WorksForRelationConstrainedClassifier :: LivesInRelationConstrainedClassifier :: Nil,
+      jointTrainIteration, init = true
+    )
 
     // TODO: merge the following two tests
     ClassifierUtils.TestClassifiers((testTokens, PerConstrainedClassifier), (testTokens, OrgConstrainedClassifier),
       (testTokens, LocConstrainedClassifier))
 
-    //    ClassifierUtils.TestClassifiers(
-    //      (testRels, WorksFor_PerOrg_ConstrainedClassifier),
-    //      (testRels, LivesIn_PerOrg_relationConstrainedClassifier)
-    //    )
+    ClassifierUtils.TestClassifiers(
+      (testRels, WorksForRelationConstrainedClassifier),
+      (testRels, LivesInRelationConstrainedClassifier)
+    )
   }
 
   /** Interactive model to annotate input sentences with Pre-trained models

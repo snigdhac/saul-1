@@ -34,13 +34,13 @@ object EntityRelationConstrainedClassifiers {
     override def solverType = OJAlgo
   }
 
-  object WorksForRelationConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
+  object WorksForRelationConstrainedClassifier extends ConstrainedClassifier[ConllRelation, ConllRelation] {
     override lazy val onClassifier = EntityRelationClassifiers.WorksForClassifier
     override def constraintsOpt = Some(EntityRelationConstraints.relationArgumentConstraints)
     override def solverType = OJAlgo
   }
 
-  object LivesInRelationConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
+  object LivesInRelationConstrainedClassifier extends ConstrainedClassifier[ConllRelation, ConllRelation] {
     override lazy val onClassifier = EntityRelationClassifiers.LivesInClassifier
     override def constraintsOpt = Some(EntityRelationConstraints.relationArgumentConstraints)
     override def solverType = OJAlgo
