@@ -124,6 +124,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   def cacheKey[U](u: U): String = u.toString //+ u.hashCode()
 
   def getInstancesInvolvedInProblem: Option[Set[_]] = {
+    println("constraintsOpt = " + constraintsOpt)
     constraintsOpt.map { constraint => getInstancesInvolved(constraint) }
   }
 
@@ -168,6 +169,11 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
   private def build(head: HEAD, t: T)(implicit d: DummyImplicit): String = {
     val instancesInvolved = getInstancesInvolvedInProblem
+    println("instancesInvolved = " + instancesInvolved)
+    if (constraintsOpt.isDefined && instancesInvolved.get.isEmpty) {
+      logger.warn("there are no instances associated with the constraints. It might be because you have defined " +
+        "the constraints with 'val' modifier, instead of 'def'.")
+    }
     val instanceIsInvolvedInConstraint = instancesInvolved.exists { set =>
       set.exists {
         case x: T => if (x == t) true else false
@@ -227,6 +233,9 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
           if (!solver.isSolved) {
             println(" /////// NOT SOLVED /////// ")
           }
+
+          println("***** inferenceManager.estimatorToSolverLabelMap == " + inferenceManager.estimatorToSolverLabelMap)
+          println("onClassifier = " + onClassifier)
 
           val estimatorSpecificMap = inferenceManager.estimatorToSolverLabelMap.get(onClassifier).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
 
@@ -871,11 +880,11 @@ case class ForAll[T, U](constraints: Set[Constraint[U]]) extends Constraint[T] {
 }
 
 case class AtLeast[T, U](constraints: Set[Constraint[U]], k: Int) extends Constraint[T] {
-  def negate: Constraint[T] = new AtMost[T, U](constraints, constraints.size - k)
+  def negate: Constraint[T] = new AtMost[T, U](constraints, k)
 }
 
 case class AtMost[T, U](constraints: Set[Constraint[U]], k: Int) extends Constraint[T] {
-  def negate: Constraint[T] = new AtLeast[T, U](constraints, constraints.size - k)
+  def negate: Constraint[T] = new AtLeast[T, U](constraints, k)
 }
 
 case class Exactly[T, U](constraints: Set[Constraint[U]], k: Int) extends Constraint[T] {
