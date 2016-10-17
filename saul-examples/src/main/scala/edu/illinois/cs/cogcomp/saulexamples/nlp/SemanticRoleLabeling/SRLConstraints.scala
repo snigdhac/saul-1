@@ -93,8 +93,9 @@ object SRLConstraints {
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
       t1 <- 0 until argCandList.size - 1
       t2 <- t1 + 1 until argCandList.size
+      aa = ((argumentTypeLearner on4 argCandList.get(t1)) equalsTo argCandList.get(t2) )
     }
-      yield ((argumentTypeLearner on2 argCandList.get(t1)) isOneOf values) ====> ((argumentTypeLearner on3 argCandList.get(t1)) equalsTo argumentTypeLearner )
+      yield ((argumentTypeLearner on2 argCandList.get(t1)) isOneOf values) ====> ((argumentTypeLearner on4 argCandList.get(t1)) equalsTo argCandList.get(t2) )
 //    ((argumentTypeLearner on argCandList.get(t1)) in values) ==> ((argumentTypeLearner on argCandList.get(t1)) isNot (argumentTypeLearner on argCandList.get(t2))
   }
 
