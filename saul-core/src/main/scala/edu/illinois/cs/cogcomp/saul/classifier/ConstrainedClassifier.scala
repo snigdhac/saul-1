@@ -121,10 +121,9 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
   }
 
-  def cacheKey[U](u: U): String = u.toString //+ u.hashCode()
+  def cacheKey[U](u: U): String = u.toString
 
   def getInstancesInvolvedInProblem: Option[Set[_]] = {
-    println("constraintsOpt = " + constraintsOpt)
     constraintsOpt.map { constraint => getInstancesInvolved(constraint) }
   }
 
@@ -169,7 +168,6 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
   private def build(head: HEAD, t: T)(implicit d: DummyImplicit): String = {
     val instancesInvolved = getInstancesInvolvedInProblem
-    println("instancesInvolved = " + instancesInvolved)
     if (constraintsOpt.isDefined && instancesInvolved.get.isEmpty) {
       logger.warn("there are no instances associated with the constraints. It might be because you have defined " +
         "the constraints with 'val' modifier, instead of 'def'.")
@@ -182,72 +180,35 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
     if (instanceIsInvolvedInConstraint) {
       val mainCacheKey = instancesInvolved.map(cacheKey(_)).toSeq.sorted.mkString("*") + onClassifier.toString + constraintsOpt
-      logger.info("***************** mainCacheKey = " + mainCacheKey)
       val resultOpt = inferenceManager.cachedResults.get(mainCacheKey)
       resultOpt match {
         case Some(estimatorPredictions) =>
-          logger.info(s" *********** Reading the results from cache . . . ")
-          logger.info(s"Cache size " + inferenceManager.cachedResults.size)
-          logger.info(s"cachedResults: " + inferenceManager.cachedResults)
           val labelsPerInstances = estimatorPredictions(onClassifier)
-          println("labelsPerInstances = " + labelsPerInstances)
           require(labelsPerInstances.contains(cacheKey(t)), s"Does not contain the cache key for ${cacheKey(t)}")
           labelsPerInstances.get(cacheKey(t)).get
         case None =>
-          logger.info(s" *********** Inference $mainCacheKey has not been cached; running inference . . . ")
-
           // create a new solver instance
           val solver = getSolverInstance
           solver.setMaximize(optimizationType == Max)
 
           // populate the instances connected to head
           val candidates = getCandidates(head)
-          //    println("*** candidates = " + candidates)
           inferenceManager.addVariablesToInferenceProblem(candidates, onClassifier, solver)
 
-          //    println("estimatorToSolverLabelMap = " + estimatorToSolverLabelMap)
-
-          // populate the constraints and relevant variables
-          //println("constraintsOpt = ")
-          //    println(constraintsOpt)
-          //    println(constraintsOpt)
           constraintsOpt.foreach {
             case constraints =>
-              println("constraints = ")
-              println(constraints)
               val inequalities = inferenceManager.processConstraints(constraints, solver)
-              //        inequalities.foreach { inequality =>
-              //          solver.addLessThanConstraint(inequality.x, inequality.a, inequality.b)
-              //        }
-              println("final inequalities  . .  . ")
               inequalities.foreach { ineq =>
-                println("------")
-                println("ineq.x = " + ineq.x.toSeq)
-                println("ineq.a = " + ineq.a.toSeq)
-                println("ineq.b = " + ineq.b)
                 solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
               }
           }
 
           solver.solve()
           if (!solver.isSolved) {
-            println(" /////// NOT SOLVED /////// ")
+            logger.warn("Instance not solved . . . ")
           }
 
-          println("***** inferenceManager.estimatorToSolverLabelMap == " + inferenceManager.estimatorToSolverLabelMap)
-          println("onClassifier = " + onClassifier)
-
           val estimatorSpecificMap = inferenceManager.estimatorToSolverLabelMap.get(onClassifier).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
-
-          println("***** estimatorToSolverLabelMap")
-          println(inferenceManager.estimatorToSolverLabelMap)
-
-          // println(" ----- after solving it ------ ")
-          //        (0 to 11).foreach { int =>
-          //          println("int = " + int)
-          //          println("solver.getIntegerValue(int) = " + solver.getIntegerValue(int))
-          //          println("-------")
-          //        }
 
           val labelsPerEstimatorPerInstance = inferenceManager.estimatorToSolverLabelMap.mapValues { instanceLabelMap =>
             instanceLabelMap.map {
@@ -262,20 +223,12 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
           inferenceManager.cachedResults.put(mainCacheKey, labelsPerEstimatorPerInstance)
 
-          //println("# of candidates: " + candidates.length)
-          //println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.size)
-          //println("length of instanceLabelVarMap: " + estimatorToSolverLabelMap.get(estimator).get.size)
-          println("***** estimatorSpecificMap = ")
-          println(estimatorSpecificMap)
           estimatorSpecificMap.get(t) match {
             case Some(indexLabelPairs) =>
               val values = indexLabelPairs.map {
-                case (ind, label) =>
-                  println(s"ind=$ind / label=$label / solver.getIntegerValue(ind)=${solver.getIntegerValue(ind)}")
-                  solver.getIntegerValue(ind)
+                case (ind, _) => solver.getIntegerValue(ind)
               }
               assert(values.sum == 1, "exactly one label should be active.")
-
               indexLabelPairs.collectFirst {
                 case (ind, label) if solver.getIntegerValue(ind) == 1.0 => label
               }.get
@@ -284,16 +237,14 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
       }
     } else {
       // if the instance doesn't involve in any constraints, it means that it's a simple non-constrained problem.
-      println("getting the label with the highest score . . . ")
+      logger.info("getting the label with the highest score . . . ")
       onClassifier.classifier.scores(t).highScoreValue()
     }
   }
 
-  //def solve(): Boolean = ??? /// solver.solve()
-
   /** Test Constrained Classifier with automatically derived test instances.
     *
-    * @return Seq of ???
+    * @return A [[Results]] object
     */
   def test(): Results = {
     test(deriveTestInstances)
@@ -307,12 +258,8 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     * @return Seq of ???
     */
   def test(testData: Iterable[T] = null, outFile: String = null, outputGranularity: Int = 0, exclude: String = ""): Results = {
-    println()
-    //println("size of test data = " + testData.size)
     val testReader = new IterableToLBJavaParser[T](if (testData == null) deriveTestInstances else testData)
     testReader.reset()
-    println("testReader.data.size = " + testReader.data.size)
-
     val tester: TestDiscrete = new TestDiscrete()
     TestWithStorage.test(tester, onClassifier.classifier, onClassifier.getLabeler, testReader, outFile, outputGranularity, exclude)
     val perLabelResults = tester.getLabels.map {
@@ -340,26 +287,10 @@ class InferenceManager {
   // a small number used in creation of exclusive inequalities
   private val epsilon = 0.01
 
-  //  sealed trait ILPInequality{
-  //    def a: Array[Double]
-  //    def x: Array[Int]
-  //    def b: Double
-  //  }
   // greater or equal to: ax >= b
-  case class ILPInequalityGEQ(a: Array[Double], x: Array[Int], b: Double) //extends ILPInequality
-  // less or equal to: ax <= b
-  //case class ILPInequalityLEQ(a: Array[Double], x: Array[Int], b: Double) extends ILPInequality
-  // equal to: ax = b
-  //case class ILPInequalityEQ(a: Array[Double], x: Array[Int], b: Double) extends ILPInequality
+  case class ILPInequalityGEQ(a: Array[Double], x: Array[Int], b: Double)
 
   def processConstraints[V <: Any](saulConstraint: Constraint[V], solver: ILPSolver)(implicit tag: ClassTag[V]): Set[ILPInequalityGEQ] = {
-
-    //println("SaulConstraint: " + saulConstraint)
-    /*    saulConstraint match {
-      case c: SaulPropositionalConstraint[V] =>
-        addVariablesToInferenceProblem(Seq(instance), c.estimator, solver)
-      case _ => // do nothing
-    }*/
 
     saulConstraint match {
       case c: PropositionalEqualityConstraint[V] =>
@@ -371,7 +302,6 @@ class InferenceManager {
         // estimates per instance
         val estimatorScoresMap = estimatorToSolverLabelMap.get(c.estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
 
-        //        println("****** c.instanceOpt.get = " + c.instanceOpt.get)
         val (ilpIndices, labels) = estimatorScoresMap.get(c.instanceOpt.get) match {
           case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.unzip
           case None =>
@@ -379,7 +309,6 @@ class InferenceManager {
             val labels = c.estimator.classifier.scores(c.instanceOpt.get).toArray.map(_.value)
             val indicesPerLabels = solver.addDiscreteVariable(confidenceScores)
             estimatorScoresMap += (c.instanceOpt.get -> indicesPerLabels.zip(labels))
-            println(" ---> adding: estimatorScoresMap = " + estimatorScoresMap)
             estimatorToSolverLabelMap.put(c.estimator, estimatorScoresMap)
             (indicesPerLabels.toSeq, labels.toSeq)
         }
@@ -688,20 +617,13 @@ class InferenceManager {
 
     // adding the estimates to the solver and to the map
     instances.foreach { c =>
-      //      println("-- instance = " + c)
       val confidenceScores = estimator.classifier.scores(c).toArray.map(_.score)
       val labels = estimator.classifier.scores(c).toArray.map(_.value)
-      println("labels = " + labels.toSeq)
       val instanceIndexPerLabel = solver.addDiscreteVariable(confidenceScores)
-      println("instanceIndexPerLabel = " + instanceIndexPerLabel.toSeq)
-      println(" ---> adding: estimatorScoresMap2 = " + estimatorScoresMap)
       if (!estimatorScoresMap.contains(c)) {
         estimatorScoresMap += (c -> instanceIndexPerLabel.zip(labels).toSeq)
       }
     }
-
-    println("right after creating the variables: ")
-    println("estimatorScoresMap = " + estimatorScoresMap)
 
     // add the variables back into the map
     estimatorToSolverLabelMap.put(estimator, estimatorScoresMap)
