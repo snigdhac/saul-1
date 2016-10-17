@@ -6,15 +6,14 @@
   */
 package edu.illinois.cs.cogcomp.saulexamples
 
-import edu.illinois.cs.cogcomp.infer.ilp.OJalgoHook
 import edu.illinois.cs.cogcomp.lbjava.learn.Learner
-import edu.illinois.cs.cogcomp.saul.classifier.{ SaulConstraint, ConstrainedClassifier }
-import edu.illinois.cs.cogcomp.saul.constraint.ConstraintTypeConversion._
+import edu.illinois.cs.cogcomp.saul.classifier.{ ConstrainedProblem, SaulConstraint }
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
 import edu.illinois.cs.cogcomp.saulexamples.setcover.{ City, ContainsStation, Neighborhood }
 import org.scalatest.{ Matchers, FlatSpec }
 
+import SaulConstraint._
 import scala.collection.JavaConversions._
 
 class InferenceQuantifierTests extends FlatSpec with Matchers {
@@ -32,72 +31,56 @@ class InferenceQuantifierTests extends FlatSpec with Matchers {
     /** definition of the constraints */
     val containStation = new ContainsStation()
 
-    val containStation2: LBJLearnerEquivalent = new LBJLearnerEquivalent {
+    val containStationLBJEquivalent: LBJLearnerEquivalent = new LBJLearnerEquivalent {
       override val classifier: Learner = new ContainsStation()
     }
 
-    def neighborhoodContainsStation = { n: Neighborhood =>
-      containStation on n isTrue
+    def neighborhoodContainsStation(n: Neighborhood) = containStationLBJEquivalent on2 n isTrue2
+
+    val atLeastSomeNeighborsAreCoveredConstraint = cities.ForAll { x: City =>
+      x.getNeighborhoods.AtLeast(2) { n: Neighborhood => neighborhoodContainsStation(n) }
     }
 
-    import SaulConstraint._
-
-    def neighborhoodContainsStation2 = { n: Neighborhood =>
-      containStation2 on2 n isTrue2
+    val atLeastSomeNeighborsAreCoveredConstraintUsingAtMost = cities.ForAll { x: City =>
+      !x.getNeighborhoods.AtMost(2) { n: Neighborhood => neighborhoodContainsStation(n) }
     }
 
-    val atLeastSomeNeighborsAreCoveredConstraint = ConstrainedClassifier.constraint[City] { x: City =>
-      x.getNeighborhoods._atleast(2) { n: Neighborhood => neighborhoodContainsStation(n) }
+    val allNeighborsAreCoveredConstraint = cities.ForAll { x: City =>
+      x.getNeighborhoods.ForAll { n: Neighborhood => neighborhoodContainsStation(n) }
     }
 
-    val atLeastSomeNeighborsAreCoveredConstraint2 = cities.ForAll { x: City =>
-      x.getNeighborhoods.AtLeast(2) { n: Neighborhood => neighborhoodContainsStation2(n) }
-    }
-
-    val atLeastSomeNeighborsAreCoveredConstraintUsingAtMost = ConstrainedClassifier.constraint[City] { x: City =>
-      !x.getNeighborhoods._atmost(2) { n: Neighborhood => neighborhoodContainsStation(n) }
-    }
-
-    val atLeastSomeNeighborsAreCoveredConstraintUsingAtMost2 = cities.ForAll { x: City =>
-      !x.getNeighborhoods.AtMost(2) { n: Neighborhood => neighborhoodContainsStation2(n) }
-    }
-
-    val allNeighborsAreCoveredConstraint = ConstrainedClassifier.constraint[City] { x: City =>
-      x.getNeighborhoods._forall { n: Neighborhood => neighborhoodContainsStation(n) }
-    }
-
-    val allNeighborsAreCoveredConstraint2 = cities.ForAll { x: City =>
-      x.getNeighborhoods.ForAll { n: Neighborhood => neighborhoodContainsStation2(n) }
-    }
-
-    val singleNeighborsAreCoveredConstraint = ConstrainedClassifier.constraint[City] { x: City =>
-      x.getNeighborhoods._exists { n: Neighborhood => neighborhoodContainsStation(n) }
+    val singleNeighborsAreCoveredConstraint = cities.ForAll { x: City =>
+      x.getNeighborhoods.Exists { n: Neighborhood => neighborhoodContainsStation(n) }
     }
   }
 
   import SomeDM._
-  object AtLeastSomeNeighborhoods extends ConstrainedClassifier[Neighborhood, City](new ContainsStation()) {
+  object AtLeastSomeNeighborhoods extends ConstrainedProblem[Neighborhood, City] {
     override val pathToHead = Some(-cityContainsNeighborhoods)
-    override def subjectTo = atLeastSomeNeighborsAreCoveredConstraint
-    override val solver = new OJalgoHook
+    override def constraintsOpt = Some(atLeastSomeNeighborsAreCoveredConstraint)
+    override val solverType = OJAlgo
+    override def estimator: LBJLearnerEquivalent = containStationLBJEquivalent
   }
 
-  object AtLeastSomeNeighborhoodsUsingAtMost extends ConstrainedClassifier[Neighborhood, City](new ContainsStation()) {
+  object AtLeastSomeNeighborhoodsUsingAtMost extends ConstrainedProblem[Neighborhood, City] {
     override val pathToHead = Some(-cityContainsNeighborhoods)
-    override def subjectTo = atLeastSomeNeighborsAreCoveredConstraintUsingAtMost
-    override val solver = new OJalgoHook
+    override def constraintsOpt = Some(atLeastSomeNeighborsAreCoveredConstraintUsingAtMost)
+    override val solverType = OJAlgo
+    override def estimator: LBJLearnerEquivalent = containStationLBJEquivalent
   }
 
-  object AllNeighborhoods extends ConstrainedClassifier[Neighborhood, City](new ContainsStation()) {
+  object AllNeighborhoods extends ConstrainedProblem[Neighborhood, City] {
     override val pathToHead = Some(-cityContainsNeighborhoods)
-    override def subjectTo = allNeighborsAreCoveredConstraint
-    override val solver = new OJalgoHook
+    override def constraintsOpt = Some(allNeighborsAreCoveredConstraint)
+    override val solverType = OJAlgo
+    override def estimator: LBJLearnerEquivalent = containStationLBJEquivalent
   }
 
-  object ASingleNeighborhood extends ConstrainedClassifier[Neighborhood, City](new ContainsStation()) {
+  object ASingleNeighborhood extends ConstrainedProblem[Neighborhood, City] {
     override val pathToHead = Some(-cityContainsNeighborhoods)
-    override def subjectTo = singleNeighborsAreCoveredConstraint
-    override val solver = new OJalgoHook
+    override def constraintsOpt = Some(singleNeighborsAreCoveredConstraint)
+    override val solverType = OJAlgo
+    override def estimator: LBJLearnerEquivalent = containStationLBJEquivalent
   }
 
   val cityInstances = new City("../saul-examples/src/test/resources/SetCover/example.txt")

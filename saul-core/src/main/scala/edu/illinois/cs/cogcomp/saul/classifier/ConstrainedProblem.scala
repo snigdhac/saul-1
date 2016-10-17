@@ -27,7 +27,7 @@ abstract class ConstrainedProblem[T <: AnyRef, HEAD <: AnyRef](
   implicit val headType: ClassTag[HEAD]
 ) extends Logging {
 
-  protected def estimator: LBJLearnerEquivalent
+  def estimator: LBJLearnerEquivalent
   protected def constraintsOpt: Option[SaulConstraint[HEAD]] = None
 
   protected sealed trait SolverType
@@ -723,10 +723,10 @@ object SaulConstraint {
   }
 
   // collection of constraints
-  implicit def createConstraintCollection[T <: AnyRef, U <: AnyRef](coll: Traversable[SaulConstraint[U]]): ConstraintCollection[T, U] = new ConstraintCollection[T, U](coll.toSet)
-  implicit def createConstraintCollection[T <: AnyRef, U <: AnyRef](coll: Set[SaulConstraint[U]]): ConstraintCollection[T, U] = new ConstraintCollection[T, U](coll)
-  implicit def createConstraintCollection[T <: AnyRef, U <: AnyRef](coll: java.util.Collection[SaulConstraint[U]]): ConstraintCollection[T, U] = new ConstraintCollection[T, U](coll.asScala.toSet)
-  implicit def createConstraintCollection[T <: AnyRef, U <: AnyRef](coll: mutable.LinkedHashSet[SaulConstraint[U]]): ConstraintCollection[T, U] = new ConstraintCollection[T, U](coll.toSet)
+  implicit def createConstraintCollection[T <: AnyRef](coll: Traversable[SaulConstraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.toSet)
+  implicit def createConstraintCollection[T <: AnyRef](coll: Set[SaulConstraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll)
+  implicit def createConstraintCollection[T <: AnyRef](coll: java.util.Collection[SaulConstraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.asScala.toSet)
+  implicit def createConstraintCollection[T <: AnyRef](coll: mutable.LinkedHashSet[SaulConstraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.toSet)
 }
 
 class ConstraintCollection[T, U](coll: Set[SaulConstraint[U]]) {

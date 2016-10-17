@@ -4,7 +4,6 @@
   * Developed by: The Cognitive Computations Group, University of Illinois at Urbana-Champaign
   * http://cogcomp.cs.illinois.edu/
   */
-/*
 package edu.illinois.cs.cogcomp.saul.classifier
 
 import edu.illinois.cs.cogcomp.lbjava.learn.{ LinearThresholdUnit, SparseNetworkLearner }
@@ -13,22 +12,20 @@ import org.slf4j.{ Logger, LoggerFactory }
 
 import scala.reflect.ClassTag
 
-/** Created by Parisa on 5/22/15.
-  */
 object JointTrainSparseNetwork {
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
   var difference = 0
-  def apply[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedClassifier[_, HEAD]], init: Boolean)(implicit headTag: ClassTag[HEAD]) = {
+  def apply[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedProblem[_, HEAD]], init: Boolean)(implicit headTag: ClassTag[HEAD]) = {
     train[HEAD](node, cls, 1, init)
   }
 
-  def apply[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedClassifier[_, HEAD]], it: Int, init: Boolean)(implicit headTag: ClassTag[HEAD]) = {
+  def apply[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedProblem[_, HEAD]], it: Int, init: Boolean)(implicit headTag: ClassTag[HEAD]) = {
     train[HEAD](node, cls, it, init)
   }
 
   @scala.annotation.tailrec
-  def train[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedClassifier[_, HEAD]], it: Int, init: Boolean)(implicit headTag: ClassTag[HEAD]): Unit = {
+  def train[HEAD <: AnyRef](node: Node[HEAD], cls: List[ConstrainedProblem[_, HEAD]], it: Int, init: Boolean)(implicit headTag: ClassTag[HEAD]): Unit = {
     // forall members in collection of the head (dm.t) do
     logger.info("Training iteration: " + it)
     if (init) ClassifierUtils.InitializeClassifiers(node, cls: _*)
@@ -40,23 +37,23 @@ object JointTrainSparseNetwork {
       difference = 0
       allHeads.zipWithIndex.foreach {
         case (h, idx) =>
-          {if
+          {
             if (idx % 5000 == 0)
               logger.info(s"Training: $idx examples inferred.")
 
             cls.foreach {
-              case classifier: ConstrainedClassifier[_, HEAD] =>
-                val typedClassifier = classifier.asInstanceOf[ConstrainedClassifier[_, HEAD]]
-                val oracle = typedClassifier.onClassifier.getLabeler
+              case classifier: ConstrainedProblem[_, HEAD] =>
+                val typedClassifier = classifier.asInstanceOf[ConstrainedProblem[_, HEAD]]
+                val oracle = typedClassifier.estimator.getLabeler
 
                 typedClassifier.getCandidates(h) foreach {
                   candidate =>
                     {
                       def trainOnce() = {
-                        val result = typedClassifier.classifier.discreteValue(candidate)
+                        val result = typedClassifier.estimator.classifier.discreteValue(candidate)
                         val trueLabel = oracle.discreteValue(candidate)
-                        val ilearner = typedClassifier.onClassifier.classifier.asInstanceOf[SparseNetworkLearner]
-                        val lLexicon = typedClassifier.onClassifier.getLabelLexicon
+                        val ilearner = typedClassifier.estimator.classifier.asInstanceOf[SparseNetworkLearner]
+                        val lLexicon = typedClassifier.estimator.getLabelLexicon
                         var LTU_actual: Int = 0
                         var LTU_predicted: Int = 0
                         for (i <- 0 until lLexicon.size()) {
@@ -70,7 +67,7 @@ object JointTrainSparseNetwork {
                         // and the LTU of the predicted class should be demoted.
                         if (!result.equals(trueLabel)) //equals("true") && trueLabel.equals("false")   )
                         {
-                          val a = typedClassifier.onClassifier.getExampleArray(candidate)
+                          val a = typedClassifier.estimator.getExampleArray(candidate)
                           val a0 = a(0).asInstanceOf[Array[Int]] //exampleFeatures
                           val a1 = a(1).asInstanceOf[Array[Double]] // exampleValues
                           val exampleLabels = a(2).asInstanceOf[Array[Int]]
@@ -108,4 +105,3 @@ object JointTrainSparseNetwork {
     }
   }
 }
-*/
