@@ -28,11 +28,11 @@ object SetCoverSolverDataModel extends DataModel {
   }
 
   def atLeastANeighborOfNeighborhoodIsCovered = { n: Neighborhood =>
-    n.getNeighbors.Exists { neighbor: Neighborhood => containStation on2 neighbor isTrue }
+    n.getNeighbors.Exists { neighbor: Neighborhood => containStation on neighbor isTrue }
   }
 
   def neighborhoodContainsStation = { n: Neighborhood =>
-    containStation on2 n isTrue
+    (containStation on n) isTrue
   }
 
   def allCityNeighborhoodsAreCovered = { x: City =>

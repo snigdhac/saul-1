@@ -59,26 +59,26 @@ object DummyDataModel extends DataModel {
     override val classifier: Learner = new StaticClassifier(-1.0)
   }
 
-  def singleInstanceMustBeTrue(x: Instance) = { classifierNegativeScoreForTrue on2 x isTrue }
-  def singleInstanceMustBeFalse(x: Instance) = { classifierPositiveScoreForTrue on2 x isFalse }
-  def forAllTrue = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isTrue }
-  def forAllFalse = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isFalse }
-  def forAllOneOfTheLabelsPositiveClassifier = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isOneOf ("true", "true") }
-  def forAllOneOfTheLabelsNegativeClassifier = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isOneOf ("true", "true") }
-  def forAllNotFalse = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isNot "false" }
-  def forAllNotTrue = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on2 x isNot "true" }
-  def existsTrue = instanceNode.Exists { x: Instance => classifierNegativeScoreForTrue on2 x isTrue }
-  def existsFalse = instanceNode.Exists { x: Instance => classifierPositiveScoreForTrue on2 x isFalse }
-  def exatclyTrue(k: Int) = instanceNode.Exactly(k) { x: Instance => classifierPositiveScoreForTrue on2 x isTrue }
-  def exatclyFalse(k: Int) = instanceNode.Exactly(k) { x: Instance => classifierPositiveScoreForTrue on2 x isFalse }
-  def atLeastTrue(k: Int) = instanceNode.AtLeast(k) { x: Instance => classifierNegativeScoreForTrue on2 x isTrue }
-  def atLeastFalse(k: Int) = instanceNode.AtLeast(k) { x: Instance => classifierPositiveScoreForTrue on2 x isFalse }
-  def atMostTrue(k: Int) = instanceNode.AtMost(k) { x: Instance => classifierPositiveScoreForTrue on2 x isTrue }
-  def atMostFalse(k: Int) = instanceNode.AtMost(k) { x: Instance => classifierNegativeScoreForTrue on2 x isFalse }
-  def classifierHasSameValueOnTwoInstances(x: Instance, y: Instance) = classifierPositiveScoreForTrue on4 x equalsTo y
+  def singleInstanceMustBeTrue(x: Instance) = { classifierNegativeScoreForTrue on x isTrue }
+  def singleInstanceMustBeFalse(x: Instance) = { classifierPositiveScoreForTrue on x isFalse }
+  def forAllTrue = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on x isTrue }
+  def forAllFalse = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on x isFalse }
+  def forAllOneOfTheLabelsPositiveClassifier = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on x isOneOf ("true", "true") }
+  def forAllOneOfTheLabelsNegativeClassifier = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on x isOneOf ("true", "true") }
+  def forAllNotFalse = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on x isNot "false" }
+  def forAllNotTrue = instanceNode.ForAll { x: Instance => classifierPositiveScoreForTrue on x isNot "true" }
+  def existsTrue = instanceNode.Exists { x: Instance => classifierNegativeScoreForTrue on x isTrue }
+  def existsFalse = instanceNode.Exists { x: Instance => classifierPositiveScoreForTrue on x isFalse }
+  def exatclyTrue(k: Int) = instanceNode.Exactly(k) { x: Instance => classifierPositiveScoreForTrue on x isTrue }
+  def exatclyFalse(k: Int) = instanceNode.Exactly(k) { x: Instance => classifierPositiveScoreForTrue on x isFalse }
+  def atLeastTrue(k: Int) = instanceNode.AtLeast(k) { x: Instance => classifierNegativeScoreForTrue on x isTrue }
+  def atLeastFalse(k: Int) = instanceNode.AtLeast(k) { x: Instance => classifierPositiveScoreForTrue on x isFalse }
+  def atMostTrue(k: Int) = instanceNode.AtMost(k) { x: Instance => classifierPositiveScoreForTrue on x isTrue }
+  def atMostFalse(k: Int) = instanceNode.AtMost(k) { x: Instance => classifierNegativeScoreForTrue on x isFalse }
+  def classifierHasSameValueOnTwoInstances(x: Instance, y: Instance) = classifierPositiveScoreForTrue on x equalsTo y
 
   // negation
-  def forAllFalseWithNegation = instanceNode.ForAll { x: Instance => !(classifierPositiveScoreForTrue on2 x isTrue) }
+  def forAllFalseWithNegation = instanceNode.ForAll { x: Instance => !(classifierPositiveScoreForTrue on x isTrue) }
   def forAllTrueNegated = !forAllTrue
   def atLeastFalseNegated(k: Int) = !atLeastFalse(k)
 
@@ -125,23 +125,23 @@ class inferenceTest extends FlatSpec with Matchers {
   }
 
   val trueImpliesTrue = {
-    ((classifierNegativeScoreForTrue on2 instanceSet(0) isTrue) ==>
-      (classifierNegativeScoreForTrue on2 instanceSet(1) isTrue)) and (classifierNegativeScoreForTrue on2 instanceSet(0) isTrue)
+    ((classifierNegativeScoreForTrue on instanceSet(0) isTrue) ==>
+      (classifierNegativeScoreForTrue on instanceSet(1) isTrue)) and (classifierNegativeScoreForTrue on instanceSet(0) isTrue)
   }
 
   val trueImpliesFalse = {
-    ((classifierNegativeScoreForTrue on2 instanceSet(0) isTrue) ==>
-      (classifierNegativeScoreForTrue on2 instanceSet(1) isFalse)) and (classifierNegativeScoreForTrue on2 instanceSet(0) isTrue)
+    ((classifierNegativeScoreForTrue on instanceSet(0) isTrue) ==>
+      (classifierNegativeScoreForTrue on instanceSet(1) isFalse)) and (classifierNegativeScoreForTrue on instanceSet(0) isTrue)
   }
 
   val falseImpliesTrue = {
-    ((classifierNegativeScoreForTrue on2 instanceSet(0) isFalse) ==>
-      (classifierNegativeScoreForTrue on2 instanceSet(1) isTrue)) and (classifierNegativeScoreForTrue on2 instanceSet(0) isFalse)
+    ((classifierNegativeScoreForTrue on instanceSet(0) isFalse) ==>
+      (classifierNegativeScoreForTrue on instanceSet(1) isTrue)) and (classifierNegativeScoreForTrue on instanceSet(0) isFalse)
   }
 
   val falseImpliesFalse = {
-    ((classifierNegativeScoreForTrue on2 instanceSet(0) isFalse) ==>
-      (classifierNegativeScoreForTrue on2 instanceSet(1) isFalse)) and (classifierNegativeScoreForTrue on2 instanceSet(0) isFalse)
+    ((classifierNegativeScoreForTrue on instanceSet(0) isFalse) ==>
+      (classifierNegativeScoreForTrue on instanceSet(1) isFalse)) and (classifierNegativeScoreForTrue on instanceSet(0) isFalse)
   }
 
   // single instance constraint

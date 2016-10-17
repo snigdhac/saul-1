@@ -24,18 +24,18 @@ object SRLConstraints {
       x.getView(ViewNames.TOKENS).getConstituents.ForAll {
         t: Constituent =>
           val contains = argCandList.filter(_.getTarget.doesConstituentCover(t))
-          contains.AtMost(1) { p: Relation => argumentTypeLearner on2 p is "candidate" }
+          contains.AtMost(1) { p: Relation => argumentTypeLearner on p is "candidate" }
       }
     }
   }
 
   def arg_IdentifierClassifier_Constraint = relations.ForAll { x: Relation =>
-    (argumentXuIdentifierGivenApredicate on2 x isFalse) ==> (argumentTypeLearner on2 x is "candidate")
+    (argumentXuIdentifierGivenApredicate on x isFalse) ==> (argumentTypeLearner on x is "candidate")
   }
 
   def predArg_IdentifierClassifier_Constraint = relations.ForAll { x: Relation =>
-    (predicateClassifier on2 x.getSource isTrue) and (argumentXuIdentifierGivenApredicate on2 x isTrue) ==>
-      (argumentTypeLearner on2 x isNot "candidate")
+    (predicateClassifier on x.getSource isTrue) and (argumentXuIdentifierGivenApredicate on x isTrue) ==>
+      (argumentTypeLearner on x isNot "candidate")
   }
 
   def r_arg_Constraint(x: TextAnnotation) = {
@@ -45,9 +45,9 @@ object SRLConstraints {
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
       t: Relation <- argCandList
       i <- values.indices
-    } yield ((argumentTypeLearner on2 t) is values(i)) ==>
+    } yield ((argumentTypeLearner on t) is values(i)) ==>
       argCandList.filterNot(x => x.equals(t)).Exists {
-        k: Relation => (argumentTypeLearner on2 k) is values(i).substring(2)
+        k: Relation => (argumentTypeLearner on k) is values(i).substring(2)
       }
     constraints.ForAll
   }
@@ -60,9 +60,9 @@ object SRLConstraints {
       sortedCandidates = argCandList.sortBy(x => x.getTarget.getStartSpan)
       (t, ind) <- sortedCandidates.zipWithIndex.drop(1)
       i <- values.indices
-      labelOnT = (argumentTypeLearner on2 t) is values(i)
+      labelOnT = (argumentTypeLearner on t) is values(i)
       labelsIsValid = sortedCandidates.subList(0, ind).Exists {
-        k: Relation => (argumentTypeLearner on2 k) is values(i).substring(2)
+        k: Relation => (argumentTypeLearner on k) is values(i).substring(2)
       }
     } yield labelOnT ==> labelsIsValid
     constraints.ForAll
@@ -74,8 +74,8 @@ object SRLConstraints {
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
       argLegalList = legalArguments(y)
       z <- argCandList
-    } yield argLegalList.Exists { t: String => argumentTypeLearner on2 z is t } or
-      (argumentTypeLearner on2 z is "candidate")
+    } yield argLegalList.Exists { t: String => argumentTypeLearner on z is t } or
+      (argumentTypeLearner on z is "candidate")
     constraints.ForAll
   }
 
@@ -87,8 +87,8 @@ object SRLConstraints {
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
       t1 <- 0 until argCandList.size - 1
       t2 <- t1 + 1 until argCandList.size
-      predictionOnT1IsValid = (argumentTypeLearner on2 argCandList.get(t1)) isOneOf values
-      t1AndT2HaveSameLabels = (argumentTypeLearner on4 argCandList.get(t1)) equalsTo argCandList.get(t2)
+      predictionOnT1IsValid = (argumentTypeLearner on argCandList.get(t1)) isOneOf values
+      t1AndT2HaveSameLabels = (argumentTypeLearner on argCandList.get(t1)) equalsTo argCandList.get(t2)
     } yield predictionOnT1IsValid ==> t1AndT2HaveSameLabels
     constraints.ForAll
   }

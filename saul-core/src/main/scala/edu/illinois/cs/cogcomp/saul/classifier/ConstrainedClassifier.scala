@@ -700,17 +700,19 @@ class InferenceManager {
 }
 
 object Constraint {
-  implicit class LearnerToFirstOrderConstraint(estimator: LBJLearnerEquivalent) {
+  implicit class LearnerToFirstOrderConstraint1(estimator: LBJLearnerEquivalent) {
     // connecting a classifier to a specific instance
-    def on2[T](newInstance: T)(implicit tag: ClassTag[T]): PropositionalEqualityConstraint[T] = {
-      new PropositionalEqualityConstraint[T](estimator, Some(newInstance), None, None)
-    }
-    def on3[T](newInstance: T)(implicit tag: ClassTag[T]): EstimatorPairEqualityConstraint[T] = {
-      new EstimatorPairEqualityConstraint[T](estimator, None, newInstance, None)
-    }
-    def on4[T](newInstance: T)(implicit tag: ClassTag[T], d1: DummyImplicit): InstancePairEqualityConstraint[T] = {
-      new InstancePairEqualityConstraint[T](estimator, newInstance, None, None)
-    }
+    def on[T](newInstance: T)(implicit tag: ClassTag[T]): InstanceWrapper[T] = new InstanceWrapper(newInstance, estimator)
+  }
+
+  implicit def toPropositionalEqualityConstraint[T](wrapper: InstanceWrapper[T])(implicit tag: ClassTag[T]): PropositionalEqualityConstraint[T] = {
+    new PropositionalEqualityConstraint[T](wrapper.estimator, Some(wrapper.instance), None, None)
+  }
+  implicit def toInstancePairEqualityConstraint[T](wrapper: InstanceWrapper[T])(implicit tag: ClassTag[T], d1: DummyImplicit): InstancePairEqualityConstraint[T] = {
+    new InstancePairEqualityConstraint[T](wrapper.estimator, wrapper.instance, None, None)
+  }
+  implicit def toEstimatorPairEqualityConstraint[T](wrapper: InstanceWrapper[T])(implicit tag: ClassTag[T]): EstimatorPairEqualityConstraint[T] = {
+    new EstimatorPairEqualityConstraint[T](wrapper.estimator, None, wrapper.instance, None)
   }
 
   // collection of target object types
@@ -768,7 +770,6 @@ sealed trait Constraint[T] {
     // p --> q can be modelled as p or not(q)
     PairConjunction[T, U](this, q.negate)
   }
-
   def ==>[U](q: Constraint[U]): PairConjunction[T, U] = implies(q)
 
   def negate: Constraint[T]
@@ -779,6 +780,8 @@ sealed trait Constraint[T] {
 sealed trait PropositionalConstraint[T] extends Constraint[T] {
   def estimator: LBJLearnerEquivalent
 }
+
+case class InstanceWrapper[T](instance: T, estimator: LBJLearnerEquivalent)
 
 case class PropositionalEqualityConstraint[T](
   estimator: LBJLearnerEquivalent,
