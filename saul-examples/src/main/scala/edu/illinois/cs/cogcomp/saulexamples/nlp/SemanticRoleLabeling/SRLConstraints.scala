@@ -11,13 +11,13 @@ import edu.illinois.cs.cogcomp.core.datastructures.textannotation._
 import edu.illinois.cs.cogcomp.saul.classifier.Constraint
 import edu.illinois.cs.cogcomp.saulexamples.data.XuPalmerCandidateGenerator
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLApps.srlDataModelObject._
-import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers.{ argumentTypeLearner, argumentXuIdentifierGivenApredicate, predicateClassifier }
+import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers.{ argumentTypeLearner, argumentXuIdentifierGivenPredicate, predicateClassifier }
 
 import scala.collection.JavaConversions._
 import Constraint._
 
 object SRLConstraints {
-  def noOverlap = sentences.ForAll { x: TextAnnotation =>
+  def noOverlap = sentences.ForEach { x: TextAnnotation =>
     (sentences(x) ~> sentencesToRelations ~> relationsToPredicates).ForAll { y =>
       val argCandList = XuPalmerCandidateGenerator.generateCandidates(y, (sentences(y.getTextAnnotation) ~> sentencesToStringTree).head).
         map(y => new Relation("candidate", y.cloneForNewView(y.getViewName), y.cloneForNewView(y.getViewName), 0.0))
@@ -29,12 +29,12 @@ object SRLConstraints {
     }
   }
 
-  def arg_IdentifierClassifier_Constraint = relations.ForAll { x: Relation =>
-    (argumentXuIdentifierGivenApredicate on x isFalse) ==> (argumentTypeLearner on x is "candidate")
+  def arg_IdentifierClassifier_Constraint = relations.ForEach { x: Relation =>
+    (argumentXuIdentifierGivenPredicate on x isFalse) ==> (argumentTypeLearner on x is "candidate")
   }
 
-  def predArg_IdentifierClassifier_Constraint = relations.ForAll { x: Relation =>
-    (predicateClassifier on x.getSource isTrue) and (argumentXuIdentifierGivenApredicate on x isTrue) ==>
+  def predArg_IdentifierClassifier_Constraint = relations.ForEach { x: Relation =>
+    (predicateClassifier on x.getSource isTrue) and (argumentXuIdentifierGivenPredicate on x isTrue) ==>
       (argumentTypeLearner on x isNot "candidate")
   }
 
@@ -93,7 +93,7 @@ object SRLConstraints {
     constraints.ForAll
   }
 
-  def r_and_c_args = sentences.ForAll { x: TextAnnotation =>
+  def r_and_c_args = sentences.ForEach { x: TextAnnotation =>
     r_arg_Constraint(x) and c_arg_Constraint(x) and legal_arguments_Constraint(x) and noDuplicate(x)
   }
 }

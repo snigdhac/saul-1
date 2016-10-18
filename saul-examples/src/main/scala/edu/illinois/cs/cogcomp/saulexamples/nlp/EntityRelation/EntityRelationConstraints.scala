@@ -13,7 +13,7 @@ import Constraint._
 
 object EntityRelationConstraints {
   // if x is works-for relation, it shouldn't be lives-in relation.
-  def relationArgumentConstraints = EntityRelationDataModel.pairs.ForAll { x: ConllRelation =>
+  def relationArgumentConstraints = EntityRelationDataModel.pairs.ForEach { x: ConllRelation =>
     worksForConstraint(x) and livesInConstraint(x) and worksForImpliesNotLivesIn(x)
   }
 

@@ -15,7 +15,7 @@ import edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation.EntityRelationDat
 object EntityRelationClassifiers {
   /** independent entity classifiers */
   object OrganizationClassifier extends Learnable(tokens) {
-    def label: Property[ConllRawToken] = entityType is "Org"
+    def label = entityType is "Org"
     override lazy val classifier = new SparseNetworkLearner()
     override def feature = using(word, posWindowFeature, phrase,
       containsSubPhraseMent, containsSubPhraseIng, wordLen)
@@ -23,7 +23,7 @@ object EntityRelationClassifiers {
   }
 
   object PersonClassifier extends Learnable(tokens) {
-    def label: Property[ConllRawToken] = entityType is "Peop"
+    def label = entityType is "Peop"
     override def feature = using(word, posWindowFeature, phrase,
       containsSubPhraseMent, containsSubPhraseIng, wordLen)
     override lazy val classifier = new SparseNetworkLearner()
@@ -31,7 +31,7 @@ object EntityRelationClassifiers {
   }
 
   object LocationClassifier extends Learnable(tokens) {
-    def label: Property[ConllRawToken] = entityType is "Loc"
+    def label = entityType is "Loc"
     override def feature = using(word, posWindowFeature, phrase, containsSubPhraseMent,
       containsSubPhraseIng, wordLen)
     override lazy val classifier = new SparseNetworkLearner()
@@ -40,36 +40,36 @@ object EntityRelationClassifiers {
 
   /** independent relation classifiers */
   object WorksForClassifier extends Learnable(pairs) {
-    def label: Property[ConllRelation] = relationType is "Work_For"
+    def label = relationType is "Work_For"
     override def feature = using(relFeature, relPos)
     override lazy val classifier = new SparseNetworkLearner()
   }
 
   object LivesInClassifier extends Learnable(pairs) {
-    def label: Property[ConllRelation] = relationType is "Live_In"
+    def label = relationType is "Live_In"
     override def feature = using(relFeature, relPos)
     override lazy val classifier = new SparseNetworkLearner()
   }
 
   object OrgBasedInClassifier extends Learnable(pairs) {
-    override def label: Property[ConllRelation] = relationType is "OrgBased_In"
+    override def label = relationType is "OrgBased_In"
     override lazy val classifier = new SparseNetworkLearner()
   }
 
   object LocatedInClassifier extends Learnable(pairs) {
-    override def label: Property[ConllRelation] = relationType is "Located_In"
+    override def label = relationType is "Located_In"
     override lazy val classifier = new SparseNetworkLearner()
   }
 
   /** relation pipeline classifiers */
   object WorksForClassifierPipeline extends Learnable(pairs) {
-    override def label: Property[ConllRelation] = relationType is "Work_For"
+    override def label = relationType is "Work_For"
     override def feature = using(relFeature, relPos, entityPrediction)
     override lazy val classifier = new SparseNetworkLearner()
   }
 
   object LivesInClassifierPipeline extends Learnable(pairs) {
-    override def label: Property[ConllRelation] = relationType is "Live_In"
+    override def label = relationType is "Live_In"
     override def feature = using(relFeature, relPos, entityPrediction)
     override lazy val classifier = new SparseNetworkLearner()
   }

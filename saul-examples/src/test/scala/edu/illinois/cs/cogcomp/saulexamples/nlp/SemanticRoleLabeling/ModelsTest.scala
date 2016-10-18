@@ -12,7 +12,6 @@ import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLConstrai
 import org.scalatest.{ FlatSpec, Matchers }
 
 class ModelsTest extends FlatSpec with Matchers {
-
   "argument type classifier (aTr)" should "work." in {
     ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_aTr/", argumentTypeLearner)
     val results = argumentTypeLearner.test(exclude = "candidate")
@@ -52,8 +51,8 @@ class ModelsTest extends FlatSpec with Matchers {
   }
 
   "argument identifier (bTr)" should "perform higher than 0.95." in {
-    ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_bTr/", argumentXuIdentifierGivenApredicate)
-    val results = argumentXuIdentifierGivenApredicate.test()
+    ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_bTr/", argumentXuIdentifierGivenPredicate)
+    val results = argumentXuIdentifierGivenPredicate.test()
     results.perLabel.foreach {
       result =>
         result.label match { case "true" => (result.f1 >= 0.95) should be(true) }

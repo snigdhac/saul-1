@@ -28,7 +28,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 ) extends Logging {
 
   def onClassifier: LBJLearnerEquivalent
-  protected def constraintsOpt: Option[Constraint[HEAD]] = None
+  protected def subjectTo: Option[Constraint[HEAD]] = None
 
   protected sealed trait SolverType
   protected case object Gurobi extends SolverType
@@ -123,8 +123,21 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
   def cacheKey[U](u: U): String = u.toString
 
-  def getInstancesInvolvedInProblem: Option[Set[_]] = {
+  def getInstancesInvolvedInProblem(constraintsOpt: Option[Constraint[_]]): Option[Set[_]] = {
     constraintsOpt.map { constraint => getInstancesInvolved(constraint) }
+  }
+
+  /** given a head instance, produces a constraint based off of it */
+  def instantiateConstraintGivenInstance(head: HEAD): Option[Constraint[_]] = {
+    // look at only the first level; if it is PerInstanceConstraint, replace it.
+    subjectTo.map {
+      case constraint: PerInstanceConstraint[HEAD] =>
+        println("111111111111111111111111111111111111111111")
+        constraint.sensor(head)
+      case constraint: Constraint[_] =>
+        println("222222222222222222222222222222222222222222")
+        constraint
+    }
   }
 
   def getInstancesInvolved(constraint: Constraint[_]): Set[_] = {
@@ -167,7 +180,8 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   }
 
   private def build(head: HEAD, t: T)(implicit d: DummyImplicit): String = {
-    val instancesInvolved = getInstancesInvolvedInProblem
+    val constraintsOpt = instantiateConstraintGivenInstance(head)
+    val instancesInvolved = getInstancesInvolvedInProblem(constraintsOpt)
     if (constraintsOpt.isDefined && instancesInvolved.get.isEmpty) {
       logger.warn("there are no instances associated with the constraints. It might be because you have defined " +
         "the constraints with 'val' modifier, instead of 'def'.")
@@ -258,18 +272,24 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     * @return Seq of ???
     */
   def test(testData: Iterable[T] = null, outFile: String = null, outputGranularity: Int = 0, exclude: String = ""): Results = {
-    val testReader = new IterableToLBJavaParser[T](if (testData == null) deriveTestInstances else testData)
-    testReader.reset()
-    val tester: TestDiscrete = new TestDiscrete()
-    TestWithStorage.test(tester, onClassifier.classifier, onClassifier.getLabeler, testReader, outFile, outputGranularity, exclude)
+    val testReader = if (testData == null) deriveTestInstances else testData
+    val tester = new TestDiscrete()
+    testReader.foreach { instance =>
+      val label = onClassifier.getLabeler.discreteValue(instance)
+      val prediction = build(instance)
+      tester.reportPrediction(prediction, label)
+      println("labe = " + label)
+      println("prediction = " + prediction)
+    }
     val perLabelResults = tester.getLabels.map {
       label =>
         ResultPerLabel(label, tester.getF1(label), tester.getPrecision(label), tester.getRecall(label),
           tester.getAllClasses, tester.getLabeled(label), tester.getPredicted(label), tester.getCorrect(label))
     }
-    val overalResultArray = tester.getOverallStats()
-    val overalResult = OverallResult(overalResultArray(0), overalResultArray(1), overalResultArray(2))
-    Results(perLabelResults, ClassifierUtils.getAverageResults(perLabelResults), overalResult)
+    val overallResultArray = tester.getOverallStats()
+    val overallResult = OverallResult(overallResultArray(0), overallResultArray(1), overallResultArray(2))
+    println("overallResult =" + overallResult)
+    Results(perLabelResults, ClassifierUtils.getAverageResults(perLabelResults), overallResult)
   }
 }
 
@@ -322,11 +342,21 @@ class InferenceManager {
           s"the equality constraint $c has values for both equality and inequality"
         )
 
+        val classifierTagSet = if (c.estimator.classifier.getLabeler != null) {
+          c.estimator.classifier.getLabeler.allowableValues().toSet
+        } else {
+          c.estimator.classifier.allowableValues().toSet
+        }
+
+        println("c.estimator.classifier.allowableValues().toSet = " + c.estimator.classifier.allowableValues().toSet)
+        println("c.estimator.classifier.getLabeler.allowableValues().toSet = " + c.estimator.classifier.getLabeler.allowableValues().toSet)
+
         if (c.equalityValOpt.isDefined) {
           // first make sure the target value is valid
           require(
-            c.estimator.classifier.allowableValues().toSet.contains(c.equalityValOpt.get),
-            s"The target value ${c.equalityValOpt} is not a valid value for classifier ${c.estimator}"
+            classifierTagSet.contains(c.equalityValOpt.get),
+            s"The target value ${c.equalityValOpt} is not a valid value for classifier ${c.estimator} - " +
+              s"the classifier tagset is $classifierTagSet"
           )
           val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.equalityValOpt.get => idx }
           val x = ilpIndices(labelIndexOpt.getOrElse(throw new Exception(s"the corresponding index to label ${c.equalityValOpt.get} not found")))
@@ -338,7 +368,7 @@ class InferenceManager {
           Set(ILPInequalityGEQ(Array(1.0), Array(x), 1.0)) //, ILPInequalityGEQ(Array(-1.0), Array(x), -1.0))
         } else {
           require(
-            c.estimator.classifier.allowableValues().toSet.contains(c.inequalityValOpt.get),
+            classifierTagSet.contains(c.inequalityValOpt.get),
             s"The target value ${c.inequalityValOpt} is not a valid value for classifier ${c.estimator}"
           )
           val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.inequalityValOpt.get => idx }
@@ -655,6 +685,11 @@ object Constraint {
     new ConstraintObjWrapper[T](node.getAllInstances.toSeq)
   }
 
+  // node object
+  implicit def nodeObjectConstraint[T <: AnyRef](node: Node[T]): NodeWrapper[T] = {
+    new NodeWrapper[T](node)
+  }
+
   // collection of constraints
   implicit def createConstraintCollection[T <: AnyRef](coll: Traversable[Constraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll.toSet)
   implicit def createConstraintCollection[T <: AnyRef](coll: Set[Constraint[T]]): ConstraintCollection[T, T] = new ConstraintCollection[T, T](coll)
@@ -668,6 +703,14 @@ class ConstraintCollection[T, U](coll: Set[Constraint[U]]) {
   def AtLeast(k: Int) = new AtLeast[T, U](coll, k)
   def AtMost(k: Int) = new AtMost[T, U](coll, k)
   def Exactly(k: Int) = new Exactly[T, U](coll, k)
+}
+
+class NodeWrapper[T <: AnyRef](node: Node[T]) {
+  def ForEach(sensor: T => Constraint[_]) = PerInstanceConstraint(sensor)
+}
+
+case class PerInstanceConstraint[T](sensor: T => Constraint[_]) extends Constraint[T] {
+  override def negate: Constraint[T] = ???
 }
 
 class ConstraintObjWrapper[T](coll: Seq[T]) {

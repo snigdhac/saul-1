@@ -98,7 +98,7 @@ object DummyDataModel extends DataModel {
 class DummyConstrainedInference(someConstraint: Some[Constraint[Instance]], classifier: LBJLearnerEquivalent) extends ConstrainedClassifier[Instance, Instance] {
   override lazy val onClassifier = classifier
   override def pathToHead = None
-  override def constraintsOpt = someConstraint
+  override def subjectTo = someConstraint
   override def solverType = OJAlgo
 }
 

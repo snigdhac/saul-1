@@ -52,28 +52,28 @@ class InferenceQuantifierTests extends FlatSpec with Matchers {
   import SomeDM._
   object AtLeastSomeNeighborhoods extends ConstrainedClassifier[Neighborhood, City] {
     override val pathToHead = Some(-cityContainsNeighborhoods)
-    override def constraintsOpt = Some(atLeastSomeNeighborsAreCoveredConstraint)
+    override def subjectTo = Some(atLeastSomeNeighborsAreCoveredConstraint)
     override val solverType = OJAlgo
     override def onClassifier: LBJLearnerEquivalent = containStationLBJEquivalent
   }
 
   object AtLeastSomeNeighborhoodsUsingAtMost extends ConstrainedClassifier[Neighborhood, City] {
     override val pathToHead = Some(-cityContainsNeighborhoods)
-    override def constraintsOpt = Some(atLeastSomeNeighborsAreCoveredConstraintUsingAtMost)
+    override def subjectTo = Some(atLeastSomeNeighborsAreCoveredConstraintUsingAtMost)
     override val solverType = OJAlgo
     override def onClassifier: LBJLearnerEquivalent = containStationLBJEquivalent
   }
 
   object AllNeighborhoods extends ConstrainedClassifier[Neighborhood, City] {
     override val pathToHead = Some(-cityContainsNeighborhoods)
-    override def constraintsOpt = Some(allNeighborsAreCoveredConstraint)
+    override def subjectTo = Some(allNeighborsAreCoveredConstraint)
     override val solverType = OJAlgo
     override def onClassifier: LBJLearnerEquivalent = containStationLBJEquivalent
   }
 
   object ASingleNeighborhood extends ConstrainedClassifier[Neighborhood, City] {
     override val pathToHead = Some(-cityContainsNeighborhoods)
-    override def constraintsOpt = Some(singleNeighborsAreCoveredConstraint)
+    override def subjectTo = Some(singleNeighborsAreCoveredConstraint)
     override val solverType = OJAlgo
     override def onClassifier: LBJLearnerEquivalent = containStationLBJEquivalent
   }

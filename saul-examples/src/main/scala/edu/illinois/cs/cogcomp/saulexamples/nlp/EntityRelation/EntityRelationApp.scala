@@ -106,8 +106,10 @@ object EntityRelationApp extends Logging {
       WorksForClassifier, LivesInClassifier, LocatedInClassifier, OrgBasedInClassifier)
 
     // Test using constrained classifiers
-    ClassifierUtils.TestClassifiers(PerConstrainedClassifier, OrgConstrainedClassifier, LocConstrainedClassifier,
-      WorksForRelationConstrainedClassifier, LivesInRelationConstrainedClassifier)
+    ClassifierUtils.TestClassifiers( //PerConstrainedClassifier//, OrgConstrainedClassifier, LocConstrainedClassifier,
+      //WorksForRelationConstrainedClassifier, LivesInRelationConstrainedClassifier
+      LivesInRelationConstrainedClassifier
+    )
   }
 
   /** here we meanwhile training classifiers, we use global inference, in order to overcome the poor local
