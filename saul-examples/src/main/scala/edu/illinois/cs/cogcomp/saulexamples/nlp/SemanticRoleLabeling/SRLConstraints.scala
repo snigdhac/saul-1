@@ -39,21 +39,21 @@ object SRLConstraints {
   }
 
   def r_arg_Constraint(x: TextAnnotation) = {
-    val values = Array("R-A1", "R-A2", "R-A3", "R-A4", "R-A5", "R-AA", "R-AM-ADV", "R-AM-CAU", "R-AM-EXT", "R-AM-LOC", "R-AM-MNR", "R-AM-PNC")
+    val values = Array("R-A1", "R-A2", "R-A3", "R-A4", "R-AA", "R-AM-ADV", "R-AM-CAU", "R-AM-EXT", "R-AM-LOC", "R-AM-MNR", "R-AM-PNC")
     val constraints = for {
       y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
-      t: Relation <- argCandList
+      r: Relation <- argCandList
       i <- values.indices
-    } yield ((argumentTypeLearner on t) is values(i)) ==>
-      argCandList.filterNot(x => x.equals(t)).Exists {
+    } yield ((argumentTypeLearner on r) is values(i)) ==>
+      argCandList.filterNot(x => x.equals(r)).Exists {
         k: Relation => (argumentTypeLearner on k) is values(i).substring(2)
       }
     constraints.ForAll
   }
 
   def c_arg_Constraint(x: TextAnnotation) = {
-    val values = Array("C-A1", "C-A2", "C-A3", "C-A4", "C-A5", "C-AA", "C-AM-DIR", "C-AM-LOC", "C-AM-MNR", "C-AM-NEG", "C-AM-PNC")
+    val values = Array("C-A1", "C-A2", "C-A3", "C-A4", "C-A5", "C-AM-DIR", "C-AM-LOC", "C-AM-MNR", "C-AM-NEG", "C-AM-PNC")
     val constraints = for {
       y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
@@ -69,10 +69,13 @@ object SRLConstraints {
   }
 
   def legal_arguments_Constraint(x: TextAnnotation) = {
+    // these are the labels that are not used in the 'argumentTypeLearner' classifier
+    val excludedLabels = Set("C-AM-REC", "C-AM-PRD", "R-AM-REC", "R-AM-PRD", "R-AM-DIS",
+      "R-AM-DIR", "C-AM-MOD", "R-AM-MOD", "<null>", "R-AM-NEG")
     val constraints = for {
       y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
-      argLegalList = legalArguments(y)
+      argLegalList = legalArguments(y).toSet diff excludedLabels
       z <- argCandList
     } yield argLegalList.Exists { t: String => argumentTypeLearner on z is t } or
       (argumentTypeLearner on z is "candidate")
@@ -85,16 +88,18 @@ object SRLConstraints {
     val constraints = for {
       y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
       argCandList = (predicates(y) ~> -relationsToPredicates).toList
-      t1 <- 0 until argCandList.size - 1
-      t2 <- t1 + 1 until argCandList.size
-      predictionOnT1IsValid = (argumentTypeLearner on argCandList.get(t1)) isOneOf values
-      t1AndT2HaveSameLabels = (argumentTypeLearner on argCandList.get(t1)) equalsTo argCandList.get(t2)
-    } yield predictionOnT1IsValid ==> t1AndT2HaveSameLabels
+      idx1 <- 0 until argCandList.size - 1
+      idx2 <- idx1 + 1 until argCandList.size
+      predictionOnT1IsValid = (argumentTypeLearner on argCandList.get(idx1)) isOneOf values
+      haveSameLabels = (argumentTypeLearner on argCandList.get(idx1)) equalsTo argCandList.get(idx2)
+    } yield predictionOnT1IsValid ==> haveSameLabels
     constraints.ForAll
   }
 
   def r_and_c_args = sentences.ForEach { x: TextAnnotation =>
-    r_arg_Constraint(x) and c_arg_Constraint(x) and legal_arguments_Constraint(x) and noDuplicate(x)
+    //    c_arg_Constraint(x)
+    legal_arguments_Constraint(x)
+    // r_arg_Constraint(x) //and c_arg_Constraint(x) and legal_arguments_Constraint(x) and noDuplicate(x)
   }
 }
 

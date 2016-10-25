@@ -110,35 +110,64 @@ class inferenceTest extends FlatSpec with Matchers {
 
   // extra constraints based on data
   // all instances should have the same label
-  val classifierHasSameValueOnTwoInstancesInstantiated = {
+  def classifierHasSameValueOnTwoInstancesInstantiated = {
     classifierHasSameValueOnTwoInstances(instanceSet(0), instanceSet(1)) and
       classifierHasSameValueOnTwoInstances(instanceSet(1), instanceSet(2)) and
       classifierHasSameValueOnTwoInstances(instanceSet(2), instanceSet(3)) and
       classifierHasSameValueOnTwoInstances(instanceSet(3), instanceSet(4))
   }
 
-  val allInstancesShouldBeTrue = {
+  def allInstancesShouldBeTrue = {
     classifierHasSameValueOnTwoInstancesInstantiated and singleInstanceMustBeTrue(instanceSet(0))
   }
 
-  val trueImpliesTrue = {
+  def trueImpliesTrue = {
     ((classifierNegativeScoreForTrue on instanceSet(0) isTrue) ==>
       (classifierNegativeScoreForTrue on instanceSet(1) isTrue)) and (classifierNegativeScoreForTrue on instanceSet(0) isTrue)
   }
 
-  val trueImpliesFalse = {
+  def trueImpliesFalse = {
     ((classifierNegativeScoreForTrue on instanceSet(0) isTrue) ==>
       (classifierNegativeScoreForTrue on instanceSet(1) isFalse)) and (classifierNegativeScoreForTrue on instanceSet(0) isTrue)
   }
 
-  val falseImpliesTrue = {
+  def falseImpliesTrue = {
     ((classifierNegativeScoreForTrue on instanceSet(0) isFalse) ==>
       (classifierNegativeScoreForTrue on instanceSet(1) isTrue)) and (classifierNegativeScoreForTrue on instanceSet(0) isFalse)
   }
 
-  val falseImpliesFalse = {
+  def falseImpliesFalse = {
     ((classifierNegativeScoreForTrue on instanceSet(0) isFalse) ==>
       (classifierNegativeScoreForTrue on instanceSet(1) isFalse)) and (classifierNegativeScoreForTrue on instanceSet(0) isFalse)
+  }
+
+  def halfHalfConstraint(classifier: LBJLearnerEquivalent, firstHalfLabel: String, secondHalfLabel: String) = {
+    (0 to instanceSet.size / 2).map(i => classifier on instanceSet(i) is firstHalfLabel).ForAll and
+      ((instanceSet.size / 2 + 1) until instanceSet.size).map(i => classifier on instanceSet(i) is secondHalfLabel).ForAll
+  }
+
+  def conjunctionOfDisjunction = {
+    (classifierPositiveScoreForTrue on instanceSet(0) isFalse) and (
+      (classifierPositiveScoreForTrue on instanceSet(1) isFalse) or
+      (classifierPositiveScoreForTrue on instanceSet(2) isFalse)
+    )
+  }
+
+  def disjunctionOfConjunctions = {
+    (classifierPositiveScoreForTrue on instanceSet(0) isFalse) or (
+      (classifierPositiveScoreForTrue on instanceSet(1) isFalse) and
+      (classifierPositiveScoreForTrue on instanceSet(2) isFalse)
+    )
+  }
+
+  def halfTrueHalfFalsePositiveClassifier = {
+    halfHalfConstraint(classifierPositiveScoreForTrue, "true", "false") or
+      halfHalfConstraint(classifierPositiveScoreForTrue, "false", "true")
+  }
+
+  def halfTrueHalfFalseNegativeClassifier = {
+    halfHalfConstraint(classifierNegativeScoreForTrue, "true", "false") or
+      halfHalfConstraint(classifierNegativeScoreForTrue, "false", "true")
   }
 
   // single instance constraint
@@ -390,5 +419,33 @@ class inferenceTest extends FlatSpec with Matchers {
     )
     classifierSameValueTwoInstancesInference.build(instanceSet(0)) == "false" &&
       classifierSameValueTwoInstancesInference.build(instanceSet(1)) == "false"
+  }
+
+  "halfTrueHalfFalsePositiveClassifier" should " work properly" in {
+    val halfTrueHalfFalsePositiveClassifierInference = new DummyConstrainedInference(
+      Some(halfTrueHalfFalsePositiveClassifier), classifierPositiveScoreForTrue
+    )
+    ((0 to instanceSet.size / 2).forall(i => halfTrueHalfFalsePositiveClassifierInference.build(instanceSet(i)) == "true") &&
+      ((instanceSet.size / 2 + 1) until instanceSet.size).forall(i => halfTrueHalfFalsePositiveClassifierInference.build(instanceSet(i)) == "false")) ||
+      ((0 to instanceSet.size / 2).forall(i => halfTrueHalfFalsePositiveClassifierInference.build(instanceSet(i)) == "false") &&
+        ((instanceSet.size / 2 + 1) until instanceSet.size).forall(i => halfTrueHalfFalsePositiveClassifierInference.build(instanceSet(i)) == "true"))
+  }
+
+  "conjunctionOfDisjunctions " should " work" in {
+    val conjunctionOfDisjunctionInference = new DummyConstrainedInference(
+      Some(conjunctionOfDisjunction), classifierPositiveScoreForTrue
+    )
+    (0 to 2).count { i =>
+      conjunctionOfDisjunctionInference.build(instanceSet(i)) == "false"
+    } should be(2)
+  }
+
+  "disjunctionOfConjunction " should " work" in {
+    val disjunctionOfConjunctionsInference = new DummyConstrainedInference(
+      Some(disjunctionOfConjunctions), classifierPositiveScoreForTrue
+    )
+    (0 to 2).count { i =>
+      disjunctionOfConjunctionsInference.build(instanceSet(i)) == "false"
+    } should be(1)
   }
 }

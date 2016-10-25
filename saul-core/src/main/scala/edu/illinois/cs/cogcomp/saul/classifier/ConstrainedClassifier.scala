@@ -95,13 +95,13 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
       val l = pathToHead.get.forward.neighborsOf(x).toSet.toSeq
       l.length match {
         case 0 =>
-          logger.error("Warning: Failed to find head")
+          logger.error("Failed to find head")
           None
         case 1 =>
-          logger.info(s"Found head ${l.head} for child $x")
+          logger.trace(s"Found head ${l.head} for child $x")
           Some(l.head)
         case _ =>
-          logger.warn("Found too many heads; this is usually because some instances belong to multiple 'head's")
+          logger.error("Found too many heads; this is usually because some instances belong to multiple 'head's")
           Some(l.head)
       }
     }
@@ -117,26 +117,25 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   def build(t: T): String = {
     findHead(t) match {
       case Some(head) => build(head, t)
-      case None => throw new Exception("Unknown head object")
+      case None => onClassifier.classifier.discreteValue(t)
     }
   }
 
   def cacheKey[U](u: U): String = u.toString
 
   def getInstancesInvolvedInProblem(constraintsOpt: Option[Constraint[_]]): Option[Set[_]] = {
-    constraintsOpt.map { constraint => getInstancesInvolved(constraint) }
+    constraintsOpt.map { constraint =>
+      //      println("constraint = " + constraint)
+      getInstancesInvolved(constraint)
+    }
   }
 
   /** given a head instance, produces a constraint based off of it */
   def instantiateConstraintGivenInstance(head: HEAD): Option[Constraint[_]] = {
     // look at only the first level; if it is PerInstanceConstraint, replace it.
     subjectTo.map {
-      case constraint: PerInstanceConstraint[HEAD] =>
-        println("111111111111111111111111111111111111111111")
-        constraint.sensor(head)
-      case constraint: Constraint[_] =>
-        println("222222222222222222222222222222222222222222")
-        constraint
+      case constraint: PerInstanceConstraint[HEAD] => constraint.sensor(head)
+      case constraint: Constraint[_] => constraint
     }
   }
 
@@ -199,7 +198,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
         case Some(estimatorPredictions) =>
           val labelsPerInstances = estimatorPredictions(onClassifier)
           require(labelsPerInstances.contains(cacheKey(t)), s"Does not contain the cache key for ${cacheKey(t)}")
-          labelsPerInstances.get(cacheKey(t)).get
+          labelsPerInstances(cacheKey(t))
         case None =>
           // create a new solver instance
           val solver = getSolverInstance
@@ -209,12 +208,11 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
           val candidates = getCandidates(head)
           inferenceManager.addVariablesToInferenceProblem(candidates, onClassifier, solver)
 
-          constraintsOpt.foreach {
-            case constraints =>
-              val inequalities = inferenceManager.processConstraints(constraints, solver)
-              inequalities.foreach { ineq =>
-                solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
-              }
+          constraintsOpt.foreach { constraints =>
+            val inequalities = inferenceManager.processConstraints(constraints, solver)
+            inequalities.foreach { ineq =>
+              solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
+            }
           }
 
           solver.solve()
@@ -222,7 +220,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
             logger.warn("Instance not solved . . . ")
           }
 
-          val estimatorSpecificMap = inferenceManager.estimatorToSolverLabelMap.get(onClassifier).get.asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
+          val estimatorSpecificMap = inferenceManager.estimatorToSolverLabelMap(onClassifier).asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
 
           val labelsPerEstimatorPerInstance = inferenceManager.estimatorToSolverLabelMap.mapValues { instanceLabelMap =>
             instanceLabelMap.map {
@@ -278,8 +276,6 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
       val label = onClassifier.getLabeler.discreteValue(instance)
       val prediction = build(instance)
       tester.reportPrediction(prediction, label)
-      println("labe = " + label)
-      println("prediction = " + prediction)
     }
     val perLabelResults = tester.getLabels.map {
       label =>
@@ -320,7 +316,7 @@ class InferenceManager {
         addVariablesToInferenceProblem(Seq(c.instanceOpt.get), c.estimator, solver)
 
         // estimates per instance
-        val estimatorScoresMap = estimatorToSolverLabelMap.get(c.estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
+        val estimatorScoresMap = estimatorToSolverLabelMap(c.estimator).asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
 
         val (ilpIndices, labels) = estimatorScoresMap.get(c.instanceOpt.get) match {
           case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.unzip
@@ -343,20 +339,19 @@ class InferenceManager {
         )
 
         val classifierTagSet = if (c.estimator.classifier.getLabeler != null) {
-          c.estimator.classifier.getLabeler.allowableValues().toSet
+          (0 until c.estimator.classifier.getLabelLexicon.size).map { i =>
+            c.estimator.classifier.getLabelLexicon.lookupKey(i).getStringValue
+          }.toSet
         } else {
           c.estimator.classifier.allowableValues().toSet
         }
-
-        println("c.estimator.classifier.allowableValues().toSet = " + c.estimator.classifier.allowableValues().toSet)
-        println("c.estimator.classifier.getLabeler.allowableValues().toSet = " + c.estimator.classifier.getLabeler.allowableValues().toSet)
 
         if (c.equalityValOpt.isDefined) {
           // first make sure the target value is valid
           require(
             classifierTagSet.contains(c.equalityValOpt.get),
             s"The target value ${c.equalityValOpt} is not a valid value for classifier ${c.estimator} - " +
-              s"the classifier tagset is $classifierTagSet"
+              s"the classifier tag-set is $classifierTagSet"
           )
           val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.equalityValOpt.get => idx }
           val x = ilpIndices(labelIndexOpt.getOrElse(throw new Exception(s"the corresponding index to label ${c.equalityValOpt.get} not found")))
@@ -369,7 +364,8 @@ class InferenceManager {
         } else {
           require(
             classifierTagSet.contains(c.inequalityValOpt.get),
-            s"The target value ${c.inequalityValOpt} is not a valid value for classifier ${c.estimator}"
+            s"The target value ${c.inequalityValOpt} is not a valid value for classifier ${c.estimator} " +
+              s"with the tag-set: $classifierTagSet"
           )
           val labelIndexOpt = labels.zipWithIndex.collectFirst { case (label, idx) if label == c.inequalityValOpt.get => idx }
           val x = ilpIndices(labelIndexOpt.getOrElse(throw new Exception(s"the corresponding index to label ${c.equalityValOpt.get} not found")))
@@ -386,8 +382,8 @@ class InferenceManager {
         addVariablesToInferenceProblem(Seq(c.instance), c.estimator2Opt.get, solver)
 
         // estimates per instance
-        val estimatorScoresMap1 = estimatorToSolverLabelMap.get(c.estimator1).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
-        val estimatorScoresMap2 = estimatorToSolverLabelMap.get(c.estimator2Opt.get).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
+        val estimatorScoresMap1 = estimatorToSolverLabelMap(c.estimator1).asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
+        val estimatorScoresMap2 = estimatorToSolverLabelMap(c.estimator2Opt.get).asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
 
         val labelToIndices1 = estimatorScoresMap1.get(c.instance) match {
           case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.map(_.swap).toMap
@@ -442,7 +438,7 @@ class InferenceManager {
         addVariablesToInferenceProblem(Seq(c.instance2Opt.get), c.estimator, solver)
 
         // estimates per instance
-        val estimatorScoresMap = estimatorToSolverLabelMap.get(c.estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
+        val estimatorScoresMap = estimatorToSolverLabelMap(c.estimator).asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
 
         val labelToIndices1 = estimatorScoresMap.get(c.instance1) match {
           case Some(ilpIndexLabelPairs) => ilpIndexLabelPairs.map(_.swap).toMap
@@ -623,12 +619,10 @@ class InferenceManager {
           ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => 1.0), newAuxillaryVariables.toArray, c.k),
           ILPInequalityGEQ(newAuxillaryVariables.toArray.map(_ => -1.0), newAuxillaryVariables.toArray, -c.k)
         )
-
       case c: ForAll[V, Any] =>
         c.constraints.flatMap { processConstraints(_, solver) }
-
       case c: Implication[_, _] =>
-        throw new Exception("Saul implicaton is converted to other operations. ")
+        throw new Exception("Saul implication is converted to other operations. ")
     }
   }
 
@@ -643,7 +637,7 @@ class InferenceManager {
     createEstimatorSpecificCache(estimator)
 
     // estimates per instance
-    val estimatorScoresMap = estimatorToSolverLabelMap.get(estimator).get.asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
+    val estimatorScoresMap = estimatorToSolverLabelMap(estimator).asInstanceOf[mutable.Map[V, Seq[(Int, String)]]]
 
     // adding the estimates to the solver and to the map
     instances.foreach { c =>
@@ -663,7 +657,7 @@ class InferenceManager {
 object Constraint {
   implicit class LearnerToFirstOrderConstraint1(estimator: LBJLearnerEquivalent) {
     // connecting a classifier to a specific instance
-    def on[T](newInstance: T)(implicit tag: ClassTag[T]): InstanceWrapper[T] = new InstanceWrapper(newInstance, estimator)
+    def on[T](newInstance: T)(implicit tag: ClassTag[T]): InstanceWrapper[T] = InstanceWrapper(newInstance, estimator)
   }
 
   implicit def toPropositionalEqualityConstraint[T](wrapper: InstanceWrapper[T])(implicit tag: ClassTag[T]): PropositionalEqualityConstraint[T] = {
@@ -742,7 +736,7 @@ sealed trait Constraint[T] {
 
   def implies[U](q: Constraint[U]): PairConjunction[T, U] = {
     // p --> q can be modelled as p or not(q)
-    PairConjunction[T, U](this, q.negate)
+    PairConjunction[T, U](this.negate, q)
   }
   def ==>[U](q: Constraint[U]): PairConjunction[T, U] = implies(q)
 
@@ -804,7 +798,7 @@ case class EstimatorPairEqualityConstraint[T](
     Some(false)
   )
   override def estimator: LBJLearnerEquivalent = ???
-  override def negate: Constraint[T] = new EstimatorPairEqualityConstraint(
+  override def negate: Constraint[T] = EstimatorPairEqualityConstraint(
     estimator1, estimator2Opt, instance, Some(!equalsOpt.get)
   )
 }
@@ -827,7 +821,7 @@ case class InstancePairEqualityConstraint[T](
     Some(instance2),
     Some(false)
   )
-  override def negate: Constraint[T] = new InstancePairEqualityConstraint(
+  override def negate: Constraint[T] = InstancePairEqualityConstraint(
     estimator, instance1, instance2Opt, Some(!equalsOpt.get)
   )
 }

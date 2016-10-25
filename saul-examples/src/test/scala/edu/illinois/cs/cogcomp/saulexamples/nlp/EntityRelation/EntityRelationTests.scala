@@ -23,8 +23,8 @@ class EntityRelationTests extends FlatSpec with Matchers {
       PersonClassifier, OrganizationClassifier, LocationClassifier
     )
     val scores = List(PersonClassifier.test(), OrganizationClassifier.test(), LocationClassifier.test())
-    scores.foreach { case score => (score.average.f1 > minScore) should be(true) }
-    scores.foreach { case score => (score.overall.f1 > minScore) should be(true) }
+    scores.foreach { score => (score.average.f1 > minScore) should be(true) }
+    scores.foreach { score => (score.overall.f1 > minScore) should be(true) }
   }
 
   "independent relation classifier " should " work. " in {
@@ -35,8 +35,8 @@ class EntityRelationTests extends FlatSpec with Matchers {
     )
     val scores = List(WorksForClassifier.test(), LivesInClassifier.test(),
       LocatedInClassifier.test(), OrgBasedInClassifier.test())
-    scores.foreach { case score => (score.average.f1 > minScore) should be(true) }
-    scores.foreach { case score => (score.overall.f1 > minScore) should be(true) }
+    scores.foreach { score => (score.average.f1 > minScore) should be(true) }
+    scores.foreach { score => (score.overall.f1 > minScore) should be(true) }
   }
 
   "pipeline relation classifiers " should " work. " in {
@@ -47,8 +47,8 @@ class EntityRelationTests extends FlatSpec with Matchers {
       WorksForClassifierPipeline, LivesInClassifierPipeline
     )
     val scores = List(WorksForClassifierPipeline.test(), LivesInClassifierPipeline.test())
-    scores.foreach { case score => (score.average.f1 > minScore) should be(true) }
-    scores.foreach { case score => (score.overall.f1 > minScore) should be(true) }
+    scores.foreach { score => (score.average.f1 > minScore) should be(true) }
+    scores.foreach { score => (score.overall.f1 > minScore) should be(true) }
   }
 
   "L+I entity-relation classifiers " should " work. " in {
@@ -58,17 +58,25 @@ class EntityRelationTests extends FlatSpec with Matchers {
       PersonClassifier, OrganizationClassifier, LocationClassifier,
       WorksForClassifier, LivesInClassifier, LocatedInClassifier, OrgBasedInClassifier
     )
-    val scores = List(PerConstrainedClassifier.test(), WorksForRelationConstrainedClassifier.test())
-    scores.foreach { case score => (score.average.f1 > minScore) should be(true) }
-    scores.foreach { case score => (score.overall.f1 > minScore) should be(true) }
+    val personClassifierScore = PerConstrainedClassifier.test()
+    personClassifierScore.average.f1 should be > 0.8
+    personClassifierScore.overall.f1 should be > 0.8
+
+    val orgConstrainedClassifierScore = OrgConstrainedClassifier.test()
+    orgConstrainedClassifierScore.average.f1 should be > 0.75
+    orgConstrainedClassifierScore.overall.f1 should be > 0.75
+
+    val worksForClassifierScore = WorksForRelationConstrainedClassifier.test()
+    worksForClassifierScore.average.f1 should be > 0.9
+    worksForClassifierScore.overall.f1 should be > 0.9
   }
 
   "crossValidation on ER " should " work. " in {
-    EntityRelationDataModel.clearInstances
+    EntityRelationDataModel.clearInstances()
     sentences.populate(EntityRelationSensors.sentencesSmallSetTest)
     PersonClassifier.crossValidation(5)
     val results = PersonClassifier.crossValidation(5)
-    results.foreach { case score => (score.overall.f1 > minScore) should be(true) }
+    results.foreach { score => (score.overall.f1 > minScore) should be(true) }
   }
 
   "Initialization on ER " should "work." in {

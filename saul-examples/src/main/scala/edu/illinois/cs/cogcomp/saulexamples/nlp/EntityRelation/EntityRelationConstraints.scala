@@ -17,7 +17,7 @@ object EntityRelationConstraints {
     worksForConstraint(x) and livesInConstraint(x) and worksForImpliesNotLivesIn(x)
   }
 
-  // if x is lives-in realtion, then its first argument should be person, and second argument should be location.
+  // if x is lives-in relation, then its first argument should be person, and second argument should be location.
   def livesInConstraint(x: ConllRelation) = {
     (LivesInClassifier on x isTrue) ==> ((PersonClassifier on x.e1 isTrue) and (LocationClassifier on x.e2 isTrue))
   }

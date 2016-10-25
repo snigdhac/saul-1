@@ -10,7 +10,7 @@ import edu.illinois.cs.cogcomp.core.utilities.configuration.ResourceManager
 import edu.illinois.cs.cogcomp.saul.classifier.ClassifierUtils
 import edu.illinois.cs.cogcomp.saul.util.Logging
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers._
-import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLConstrainedClassifiers.argTypeConstraintClassifier
+import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLConstrainedClassifiers.argTypeConstrainedClassifier
 
 import java.io.File
 
@@ -150,7 +150,7 @@ object RunningApps extends App with Logging {
         logger.info("Global training... ")
         //JointTrainSparseNetwork(sentences, argTypeConstraintClassifier :: Nil, 100, true)
         argumentTypeLearner.save()
-        argTypeConstraintClassifier.test(relations.getTestingInstances, outputFile, 200, exclude = "candidate")
+        argTypeConstrainedClassifier.test(relations.getTestingInstances, outputFile, 200, exclude = "candidate")
     }
   }
 
@@ -176,7 +176,7 @@ object RunningApps extends App with Logging {
 
       case (false, true) =>
         ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_aTr/", argumentTypeLearner)
-        argTypeConstraintClassifier.test(outputGranularity = 100, exclude = "candidate")
+        argTypeConstrainedClassifier.test(outputGranularity = 100, exclude = "candidate")
 
       case (false, false) =>
         ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_aTr/", argumentTypeLearner)
