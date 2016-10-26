@@ -37,10 +37,10 @@ lazy val releaseSettings = Seq(
     commitReleaseVersion,                   // performs the initial git checks
     //tagRelease,
     publishArtifacts,                       // checks whether `publishTo` is properly set up
-    releaseStepTask(scalaDoc),      //release the scalaDocs
+    releaseStepTask(scalaDoc),              //release the scalaDocs
     setNextVersion,
-    commitNextVersion//,
-    //pushChanges                             // checks that an upstream branch is properly configured
+    commitNextVersion
+    //pushChanges                           // checks that an upstream branch is properly configured
   )
 )
 
@@ -60,7 +60,7 @@ lazy val commonSettings = Seq(
     Resolver.mavenLocal,
     "CogcompSoftware" at "http://cogcomp.cs.illinois.edu/m2repo/"
   ),
-  javaOptions ++= List("-Xmx11g"),
+  javaOptions ++= List("-Xmx15g"),
   libraryDependencies ++= Seq(
     ccgGroupId % "LBJava" % "1.2.24" withSources,
     ccgGroupId % "illinois-core-utilities" % cogcompNLPVersion withSources,

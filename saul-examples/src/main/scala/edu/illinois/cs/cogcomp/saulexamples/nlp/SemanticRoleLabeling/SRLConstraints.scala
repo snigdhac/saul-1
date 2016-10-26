@@ -97,9 +97,11 @@ object SRLConstraints {
   }
 
   def r_and_c_args = sentences.ForEach { x: TextAnnotation =>
-    //    c_arg_Constraint(x)
+        //c_arg_Constraint(x)
     legal_arguments_Constraint(x)
+//    r_arg_Constraint(x)
     // r_arg_Constraint(x) //and c_arg_Constraint(x) and legal_arguments_Constraint(x) and noDuplicate(x)
+
   }
 }
 
