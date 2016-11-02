@@ -16,7 +16,7 @@ object SRLConstrainedClassifiers {
 
   object argTypeConstrainedClassifier extends ConstrainedClassifier[Relation, TextAnnotation] {
     override def subjectTo = Some(r_and_c_args)
-    override val solverType = OJAlgo
+    override val solverType = Gurobi
     override lazy val onClassifier = argumentTypeLearner
     override val pathToHead = Some(-sentencesToRelations)
   }

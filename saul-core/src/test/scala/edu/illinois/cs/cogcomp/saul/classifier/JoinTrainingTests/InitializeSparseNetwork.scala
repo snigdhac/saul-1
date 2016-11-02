@@ -6,15 +6,11 @@
   */
 package edu.illinois.cs.cogcomp.saul.classifier.JoinTrainingTests
 
-import edu.illinois.cs.cogcomp.infer.ilp.OJalgoHook
-import edu.illinois.cs.cogcomp.lbjava.infer.FirstOrderConstant
 import edu.illinois.cs.cogcomp.lbjava.learn.{ LinearThresholdUnit, SparseNetworkLearner }
-import edu.illinois.cs.cogcomp.saul.classifier.{ JointTrainSparseNetwork, ClassifierUtils, ConstrainedClassifier, Learnable }
+import edu.illinois.cs.cogcomp.saul.classifier.{ ClassifierUtils, ConstrainedClassifier, JointTrainSparseNetwork, Learnable }
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import org.scalatest.{ FlatSpec, Matchers }
 
-/** Created by Parisa on 9/18/16.
-  */
 class InitializeSparseNetwork extends FlatSpec with Matchers {
 
   // Testing the original functions with real classifiers
@@ -31,13 +27,16 @@ class InitializeSparseNetwork extends FlatSpec with Matchers {
       override def feature = using(word, biWord)
       override lazy val classifier = new SparseNetworkLearner()
     }
-    object TestConstraintClassifier extends ConstrainedClassifier[String, String](TestClassifier) {
-      def subjectTo = ConstrainedClassifier.constraint { _ => new FirstOrderConstant(true) }
-      override val solver = new OJalgoHook
+    object TestConstraintClassifier extends ConstrainedClassifier[String, String] {
+      override def subjectTo = None
+      override val solverType = OJAlgo
+      override lazy val onClassifier = TestClassifier
     }
-    object TestConstraintClassifierWithExtendedFeatures extends ConstrainedClassifier[String, String](TestClassifierWithExtendedFeatures) {
-      def subjectTo = ConstrainedClassifier.constraint { _ => new FirstOrderConstant(true) }
-      override val solver = new OJalgoHook
+
+    object TestConstraintClassifierWithExtendedFeatures extends ConstrainedClassifier[String, String] {
+      override def subjectTo = None
+      override val solverType = OJAlgo
+      override lazy val onClassifier = TestClassifierWithExtendedFeatures
     }
 
     val words = List("this", "is", "a", "test", "candidate", ".")
@@ -72,7 +71,7 @@ class InitializeSparseNetwork extends FlatSpec with Matchers {
     wv1.size() should be(0)
     wv2.size() should be(0)
     TestClassifierWithExtendedFeatures.learn(2)
-    JointTrainSparseNetwork.train(tokens, cls, 5, false)
+    JointTrainSparseNetwork.train(tokens, cls, 5, init = false)
 
     val wv1After = clNet1.getNetwork.get(0).asInstanceOf[LinearThresholdUnit].getWeightVector
     val wv2After = clNet2.getNetwork.get(0).asInstanceOf[LinearThresholdUnit].getWeightVector
@@ -89,4 +88,3 @@ class InitializeSparseNetwork extends FlatSpec with Matchers {
     val biWord = property(tokens) { x: String => x + "-" + x }
   }
 }
-

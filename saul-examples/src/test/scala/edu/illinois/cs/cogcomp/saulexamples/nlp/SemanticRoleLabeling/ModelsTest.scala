@@ -9,7 +9,7 @@ package edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling
 import edu.illinois.cs.cogcomp.saul.classifier.ClassifierUtils
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers._
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLConstrainedClassifiers.argTypeConstrainedClassifier
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{ FlatSpec, Matchers }
 
 class ModelsTest extends FlatSpec with Matchers {
   /*
@@ -39,7 +39,7 @@ class ModelsTest extends FlatSpec with Matchers {
   }
 */
   "L+I argument type classifier (aTr)" should "work." in {
-    ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_fTr/", argumentTypeLearner)
+    ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_cTr/", argumentTypeLearner)
     val scores = argTypeConstrainedClassifier.test(exclude = "candidate")
     scores.perLabel.foreach { resultPerLabel =>
       resultPerLabel.label match {
