@@ -8,10 +8,11 @@ package edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling
 
 import edu.illinois.cs.cogcomp.saul.classifier.ClassifierUtils
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers._
-import org.scalatest.{ FlatSpec, Matchers }
+import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLConstrainedClassifiers.argTypeConstrainedClassifier
+import org.scalatest.{FlatSpec, Matchers}
 
 class ModelsTest extends FlatSpec with Matchers {
-/*
+  /*
   "argument type classifier (aTr)" should "work." in {
     ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_aTr/", argumentTypeLearner)
     val results = argumentTypeLearner.test(exclude = "candidate")
@@ -50,7 +51,7 @@ class ModelsTest extends FlatSpec with Matchers {
     }
   }
 
-/*
+  /*
   "argument identifier (bTr)" should "perform higher than 0.95." in {
     ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_bTr/", argumentXuIdentifierGivenApredicate)
     val results = argumentXuIdentifierGivenApredicate.test()
