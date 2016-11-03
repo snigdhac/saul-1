@@ -7,13 +7,13 @@
 package edu.illinois.cs.cogcomp.saulexamples
 
 import edu.illinois.cs.cogcomp.lbjava.learn.Learner
-import edu.illinois.cs.cogcomp.saul.classifier.{ Constraint, ConstrainedClassifier }
+import edu.illinois.cs.cogcomp.saul.classifier.infer.Constraint._
+import edu.illinois.cs.cogcomp.saul.classifier.infer.ConstrainedClassifier
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
-import edu.illinois.cs.cogcomp.saulexamples.setcover.{ SetCoverSolverDataModel, City, ContainsStation, Neighborhood }
-import org.scalatest.{ Matchers, FlatSpec }
+import edu.illinois.cs.cogcomp.saulexamples.setcover.{ City, ContainsStation, Neighborhood, SetCoverSolverDataModel }
+import org.scalatest.{ FlatSpec, Matchers }
 
-import Constraint._
 import scala.collection.JavaConversions._
 
 class InferenceQuantifierTests extends FlatSpec with Matchers {

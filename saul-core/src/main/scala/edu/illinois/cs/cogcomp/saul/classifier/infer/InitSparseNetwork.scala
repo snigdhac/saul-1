@@ -7,7 +7,6 @@
 package edu.illinois.cs.cogcomp.saul.classifier.infer
 
 import edu.illinois.cs.cogcomp.lbjava.learn.{ LinearThresholdUnit, SparseNetworkLearner }
-import edu.illinois.cs.cogcomp.saul.classifier.ConstrainedClassifier
 import edu.illinois.cs.cogcomp.saul.datamodel.node.Node
 
 object InitSparseNetwork {

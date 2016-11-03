@@ -10,12 +10,11 @@ import java.io.PrintStream
 
 import edu.illinois.cs.cogcomp.lbjava.classify.{ FeatureVector, ScoreSet }
 import edu.illinois.cs.cogcomp.lbjava.learn.Learner
-import edu.illinois.cs.cogcomp.saul.classifier.{ Constraint, ConstrainedClassifier }
+import edu.illinois.cs.cogcomp.saul.classifier.infer.Constraint._
+import edu.illinois.cs.cogcomp.saul.classifier.infer.{ ConstrainedClassifier, Constraint }
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
-import org.scalatest.{ Matchers, FlatSpec }
-
-import Constraint._
+import org.scalatest.{ FlatSpec, Matchers }
 
 class StaticClassifier(trueLabelScore: Double) extends Learner("DummyClassifer") {
   override def getInputType: String = { "DummyInstance" }
@@ -102,7 +101,7 @@ class DummyConstrainedInference(someConstraint: Some[Constraint[Instance]], clas
   override def solverType = OJAlgo
 }
 
-class inferenceTest extends FlatSpec with Matchers {
+class InferenceTest extends FlatSpec with Matchers {
   import DummyDataModel._
 
   val instanceSet = (1 to 5).map(Instance)

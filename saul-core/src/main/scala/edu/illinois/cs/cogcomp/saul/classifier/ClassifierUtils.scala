@@ -6,7 +6,7 @@
   */
 package edu.illinois.cs.cogcomp.saul.classifier
 
-import edu.illinois.cs.cogcomp.saul.classifier.infer.InitSparseNetwork
+import edu.illinois.cs.cogcomp.saul.classifier.infer.{ ConstrainedClassifier, InitSparseNetwork }
 import edu.illinois.cs.cogcomp.saul.datamodel.node.Node
 import edu.illinois.cs.cogcomp.saul.util.Logging
 

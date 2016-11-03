@@ -6,10 +6,9 @@
   */
 package edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation
 
-import edu.illinois.cs.cogcomp.saul.classifier.Constraint
 import edu.illinois.cs.cogcomp.saulexamples.EntityMentionRelation.datastruct.ConllRelation
 import EntityRelationClassifiers._
-import Constraint._
+import edu.illinois.cs.cogcomp.saul.classifier.infer.Constraint._
 
 object EntityRelationConstraints {
   // if x is works-for relation, it shouldn't be lives-in relation.
