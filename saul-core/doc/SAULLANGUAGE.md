@@ -66,11 +66,47 @@ OrgClassifier.save()
 This would add the suffix "20-iterations" to the files of the classifier at the time of saving them. Note that at
 the time of calling `load()` method it will look for model files with suffix "20-iterations".
 
-## Constraints
+## Constrained Classifiers
+A constrained classifiers is a classifier that predicts the class labels subject to a specified constraints.
+Here is the general form: 
+
+
+```scala
+object CONSTRAINED_CLASSIFIER extends ConstraintClassifier[INPUT_TYPE, HEAD_TYPE] {
+  override lazy val onClassifier = CLASSIFIER
+  override def subjectTo = Some(CONSTRAINT) // optional 
+  override def pathToHead = Some(PATH-TO-HEAD-EDGE) // optional 
+  override def filter: (t: INPUT_TYPE, h:HEAD_TYPE) => Boolean // optional 
+  override def solverType = SOLVER // optional  
+}
+```
+
+Here we describe each of the parameters in the above snippet: 
+ - `CONSTRAINED_CLASSIFIER`: the name of your desired constrained classifier 
+ - `INPUT_TYPE`: the input type of the desired constrained classifier 
+ - `HEAD_TYPE`: 
+ - `CLASSIFIER`: 
+ - `CONSTRAINT`: 
+ - `SOLVER`: The ILP solver machine used for the inference. Here are the possible values for `solverType`:
+ - `PATH-TO-HEAD-EDGE`:
+ - `filter`: 
+
+
+```scala
+object OrgConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
+    override lazy val onClassifier = EntityRelationClassifiers.OrganizationClassifier
+    override def pathToHead = Some(-EntityRelationDataModel.pairTo2ndArg)
+    override def subjectTo = Some(EntityRelationConstraints.relationArgumentConstraints)
+    override def filter(t: ConllRawToken, h: ConllRelation): Boolean = t.wordId == h.wordId2
+    override def solverType = OJAlgo
+}
+```
+
+
+### Constraints
 A "constraint" is a logical restriction over possible values that can be assigned to a number of variables;
 For example, a binary constraint could be `{if {A} then NOT {B}}`.
 In Saul, the constraints are defined for the assignments to class labels.
-A constraint classifiers is a classifier that predicts the class labels with regard to the specified constraints.
 
 This is done with the following construct
 
@@ -82,15 +118,3 @@ val PersonWorkFor=ConstraintClassifier.constraintOf[ConllRelation] {
 }
 ```
 
-## Constrained Classifiers
-A constrained classifier can be defined in the following form:
-
-```scala
-object LocConstraintClassifier extends ConstraintClassifier[ConllRawToken, ConllRelation](ErDataModelExample, LocClassifier) {
-
-  def subjectTo = Per_Org
-
-  override val pathToHead = Some('containE2)
-  //    override def filter(t: ConllRawToken,h:ConllRelation): Boolean = t.wordId==h.wordId2
-}
-```

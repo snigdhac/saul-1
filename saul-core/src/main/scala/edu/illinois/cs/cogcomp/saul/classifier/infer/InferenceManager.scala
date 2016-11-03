@@ -17,7 +17,7 @@ class InferenceManager {
   /** Contains cache of problems already solved. The key is the head object, which maps to instances and their
     * predicted values in the output of inference
     */
-  val cachedResults = mutable.Map[String, Map[LBJLearnerEquivalent, Map[String, String]]]()
+  val cachedResults = mutable.Map[String, (ILPSolver, LBJLearnerEquivalent, mutable.Map[LBJLearnerEquivalent, mutable.Map[_, Seq[(Int, String)]]])]()
 
   // for each estimator, maps the label of the estimator, to the integer label of the solver
   val estimatorToSolverLabelMap = mutable.Map[LBJLearnerEquivalent, mutable.Map[_, Seq[(Int, String)]]]()
@@ -46,7 +46,6 @@ class InferenceManager {
             val confidenceScores = c.estimator.classifier.scores(c).toArray.map(_.score)
             val labels = c.estimator.classifier.scores(c.instanceOpt.get).toArray.map(_.value)
             val indicesPerLabels = solver.addDiscreteVariable(confidenceScores)
-            println(">>>>1111>>> variables added" + indicesPerLabels.toSeq)
             estimatorScoresMap += (c.instanceOpt.get -> indicesPerLabels.zip(labels))
             estimatorToSolverLabelMap.put(c.estimator, estimatorScoresMap)
             (indicesPerLabels.toSeq, labels.toSeq)
@@ -129,7 +128,6 @@ class InferenceManager {
         )
 
         val yAll = solver.addDiscreteVariable(Array.fill(labelToIndices1.keySet.size) { 0 })
-        println(">>>3333>>>> variables added" + yAll.toSeq)
 
         val labels = labelToIndices1.keySet.toSeq
         labels.indices.flatMap { idx =>
@@ -186,7 +184,6 @@ class InferenceManager {
         )
 
         val yAll = solver.addDiscreteVariable(Array.fill(labelToIndices1.keySet.size) { 0 })
-        println(">>>4444>>>> variables added" + yAll.toSeq)
 
         val labels = labelToIndices1.keySet.toSeq
         labels.indices.flatMap { idx =>
@@ -226,7 +223,6 @@ class InferenceManager {
         val InequalitySystem2 = processConstraints(c.c2, solver)
         val y1 = solver.addBooleanVariable(0.0)
         val y2 = solver.addBooleanVariable(0.0)
-        println(">>>5555>>>> variables added" + y1 + ", " + y2)
         // a1.x >= b1 or a2.x >= b2:
         // should be converted to
         // a1.x >= b1.y1 + min(a1.x).(1-y1)
@@ -273,7 +269,6 @@ class InferenceManager {
         // newB2 = -b + epsilon
         val (inequalities, newAuxillaryVariables) = InequalitySystems.map { inequalitySystem =>
           val y = solver.addBooleanVariable(0.0)
-          println(">>>66666>>>> variables added" + y)
           val newInequalities = inequalitySystem.flatMap { inequality =>
             val maxValue = (inequality.a.filter(_ > 0) :+ 0.0).sum
             val minValue = (inequality.a.filter(_ < 0) :+ 0.0).sum
@@ -303,7 +298,6 @@ class InferenceManager {
         // newB2 = -b + epsilon
         val (inequalities, newAuxillaryVariables) = InequalitySystems.map { inequalitySystem =>
           val y = solver.addBooleanVariable(0.0)
-          println(">>>777777>>>> variables added" + y)
           val newInequalities = inequalitySystem.flatMap { inequality =>
             val maxValue = (inequality.a.filter(_ > 0) :+ 0.0).sum
             val minValue = (inequality.a.filter(_ < 0) :+ 0.0).sum
@@ -333,7 +327,6 @@ class InferenceManager {
         // newB2 = -b + epsilon
         val (inequalities, newAuxillaryVariables) = InequalitySystems.map { inequalitySystem =>
           val y = solver.addBooleanVariable(0.0)
-          println(">>>88888>>>> variables added" + y)
           val newInequalities = inequalitySystem.flatMap { inequality =>
             val maxValue = (inequality.a.filter(_ > 0) :+ 0.0).sum
             val minValue = (inequality.a.filter(_ < 0) :+ 0.0).sum
@@ -377,7 +370,6 @@ class InferenceManager {
       val confidenceScores = estimator.classifier.scores(c).toArray.map(_.score)
       val labels = estimator.classifier.scores(c).toArray.map(_.value)
       val instanceIndexPerLabel = solver.addDiscreteVariable(confidenceScores)
-      println(">>>2222>>>> variables added" + instanceIndexPerLabel.toSeq)
       if (!estimatorScoresMap.contains(c)) {
         estimatorScoresMap += (c -> instanceIndexPerLabel.zip(labels).toSeq)
       }

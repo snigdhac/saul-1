@@ -16,20 +16,20 @@ object SRLConstrainedClassifiers {
 
   object ArgTypeConstrainedClassifier extends ConstrainedClassifier[Relation, TextAnnotation] {
     override def subjectTo = Some(allPredicateArgumentConstraints)
-    override def solverType = Gurobi
+    override def solverType = OJAlgo
     override lazy val onClassifier = argumentTypeLearner
     override val pathToHead = Some(-sentencesToRelations)
   }
 
   object arg_Is_TypeConstrainedClassifier extends ConstrainedClassifier[Relation, Relation] {
     override def subjectTo = Some(arg_IdentifierClassifier_Constraint)
-    override def solverType = Gurobi
+    override def solverType = OJAlgo
     override lazy val onClassifier = argumentTypeLearner
   }
 
   object arg_IdentifyConstrainedClassifier extends ConstrainedClassifier[Relation, Relation] {
     override def subjectTo = Some(arg_IdentifierClassifier_Constraint)
-    override def solverType = Gurobi
+    override def solverType = OJAlgo
     override lazy val onClassifier = argumentXuIdentifierGivenPredicate
   }
 }

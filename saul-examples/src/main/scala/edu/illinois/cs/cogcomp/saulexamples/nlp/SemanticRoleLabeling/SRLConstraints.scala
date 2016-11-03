@@ -37,7 +37,8 @@ object SRLConstraints {
       (argumentTypeLearner on x isNot "candidate")
   }
 
-  def r_arg_Constraint(x: TextAnnotation) = {
+  /** constraint for reference to an actual argument/adjunct of type arg */
+  def rArgConstraint(x: TextAnnotation) = {
     val values = Array("R-A1", "R-A2", "R-A3", "R-A4", "R-AA", "R-AM-ADV", "R-AM-CAU", "R-AM-EXT", "R-AM-LOC", "R-AM-MNR", "R-AM-PNC")
     val constraints = for {
       y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
@@ -51,7 +52,8 @@ object SRLConstraints {
     constraints.ForAll
   }
 
-  def c_arg_Constraint(x: TextAnnotation) = {
+  /** constraint for continuity of an argument/adjunct of type arg */
+  def cArgConstraint(x: TextAnnotation) = {
     val values = Array("C-A1", "C-A2", "C-A3", "C-A4", "C-A5", "C-AM-DIR", "C-AM-LOC", "C-AM-MNR", "C-AM-NEG", "C-AM-PNC")
     val constraints = for {
       y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
@@ -68,21 +70,19 @@ object SRLConstraints {
   }
 
   /** the label of the classifier should be valid */
-  //  def legalArgumentsConstraint(x: TextAnnotation) = {
-  //    // these are the labels that are not used in the 'argumentTypeLearner' classifier
-  //    val excludedLabels = Set[String]("R-AM-NEG", "R-AM-MOD", "<null>", "R-AM-DIS", "R-AM-REC", "R-AM-PRD", "C-AM-REC",
-  //      "C-AM-PRD", "R-AM-DIR", "C-AM-MOD")
-  //    // Set("C-AM-REC", "C-AM-PRD", "R-AM-REC", "R-AM-PRD", "R-AM-DIS",
-  ////      "R-AM-DIR", "C-AM-MOD", "R-AM-MOD", "<null>", "R-AM-NEG")
-  //    val constraints = for {
-  //      y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
-  //      argCandList = (predicates(y) ~> -relationsToPredicates).toList
-  //      argLegalList = legalArguments(y).toSet diff excludedLabels
-  //      z <- argCandList
-  //    } yield argLegalList.Exists { t: String => argumentTypeLearner on z is t } or
-  //      (argumentTypeLearner on z is "candidate")
-  //    constraints.ForAll
-  //  }
+  def legalArgumentsConstraint(x: TextAnnotation) = {
+    // these are the labels that are not used in the 'argumentTypeLearner' classifier
+    val excludedLabels = Set("R-AM-NEG", "R-AM-MOD", "<null>", "R-AM-DIS", "R-AM-REC", "R-AM-PRD", "C-AM-REC",
+      "C-AM-PRD", "R-AM-DIR", "C-AM-MOD", "AM", "R-AM", "C-AM")
+    val constraints = for {
+      y <- sentences(x) ~> sentencesToRelations ~> relationsToPredicates
+      argCandList = (predicates(y) ~> -relationsToPredicates).toList
+      argLegalList = legalArguments(y).toSet diff excludedLabels
+      z <- argCandList
+    } yield argLegalList.Exists { t: String => argumentTypeLearner on z is t } or
+      (argumentTypeLearner on z is "candidate")
+    constraints.ForAll
+  }
 
   // Predicates have at most one argument of each type i.e. there shouldn't be any two arguments with the same type for each predicate
   def noInconsistentPredicateLabels(x: TextAnnotation) = {
@@ -95,15 +95,11 @@ object SRLConstraints {
       predictionIsValid = (argumentTypeLearner on argCandList.get(idx1)) isOneOf values
       haveSameLabels = (argumentTypeLearner on argCandList.get(idx1)) equalsTo argCandList.get(idx2)
     } yield predictionIsValid ==> haveSameLabels
-    constraints.AtLeast(0)
+    constraints.ForAll
   }
 
   def allPredicateArgumentConstraints = sentences.ForEach { x: TextAnnotation =>
-    //c_arg_Constraint(x)
-    //    legalArgumentsConstraint(x)
-    //    r_arg_Constraint(x)
-    // r_arg_Constraint(x) //and c_arg_Constraint(x) and legal_arguments_Constraint(x) and noDuplicate(x)
-    noInconsistentPredicateLabels(x)
+    rArgConstraint(x) and cArgConstraint(x) and legalArgumentsConstraint(x) and noInconsistentPredicateLabels(x)
   }
 }
 
