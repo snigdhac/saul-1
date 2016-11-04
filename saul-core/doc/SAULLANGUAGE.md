@@ -135,7 +135,7 @@ in order to have the following operators work:
 import edu.illinois.cs.cogcomp.saul.infer.Constraint._
 ```
 
-#### Propositional constraint 
+#### Propositional constraints
   This defines constraint on the prediction of a classifier on a given instance. Here is the basic form. Consider an 
    imaginary classifier `SomeClassifier` which returns `A` or  `B`. Here is how we create propositional constraint 
    to force the prediction on instance `x` to have label `A`: 
@@ -150,6 +150,28 @@ Here different variations of this basic, but there are different variations to i
  - If the label were `true` and `false`, one can use `isTrue` instead of `is "true"` (and similarily `isFalse` instead of `is "false"`). 
  - If instead of equality you want to use inequality, you can use the keyword `isNot`, instead of `is`. 
  - If you want to use the equality on multiple label values, you can use the `isOneOf(.)` keywors, instead of `is`. 
+ - If you want a classifier have the same label on two different instances, you can do: 
+
+```scala 
+  SomeClassifier on x1 equalsTo x2 
+```
+   Similarly if you want a classifier have the different label on two different instances, you can do:
+
+```scala 
+  SomeClassifier on x1 differentFrom x2 
+```
+
+ - If you want two different classifiers have the same labels on a instances, you can do:
+
+```scala 
+  SomeClassifier1 on x equalsTo SomeClassifier2 
+```
+
+   And similarly if you want two different classifiers have different labels on a instances, you can do:
+
+```scala 
+  SomeClassifier1 on x differentFrom SomeClassifier2 
+```
 
 
 #### Binary and Unary binary operators 
@@ -189,3 +211,8 @@ constraintCollection.ForAll
 
 
 There are just the definitions of the operations. If you want to see real examples of the operators in actions see [the definitions of constraints for ER-example](https://github.com/IllinoisCogComp/saul/blob/master/saul-examples/src/main/scala/edu/illinois/cs/cogcomp/saulexamples/nlp/EntityRelation/EntityRelationConstraints.scala). 
+
+**Tip:** Note whenever the constrained inference is infeasible (i.e. the constraints are overlly tight), we use the default 
+prediction of the base classifier. Hence if you see the performance of the constrained classifier is very close to the performance 
+of the base classifier it's probably most of your inference problems are becoming infeasible. In such cases it is worth verifying 
+the correctness of your constraint definitions. 
