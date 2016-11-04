@@ -17,6 +17,12 @@ import edu.illinois.cs.cogcomp.saul.util.Logging
 import scala.collection.{ Iterable, Seq, mutable }
 import scala.reflect.ClassTag
 
+/** possible solvers to use */
+sealed trait SolverType
+case object Gurobi extends SolverType
+case object OJAlgo extends SolverType
+case object Balas extends SolverType
+
 abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   implicit
   val tType: ClassTag[T],
@@ -26,17 +32,11 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   def onClassifier: LBJLearnerEquivalent
   protected def subjectTo: Option[Constraint[HEAD]] = None
 
-  protected sealed trait SolverType
-  protected case object Gurobi extends SolverType
-  protected case object OJAlgo extends SolverType
-  protected case object Balas extends SolverType
   protected def solverType: SolverType = OJAlgo
-
   protected sealed trait OptimizationType
   protected case object Max extends OptimizationType
   protected case object Min extends OptimizationType
   protected def optimizationType: OptimizationType = Max
-
   private val inferenceManager = new InferenceManager()
 
   def getClassSimpleNameForClassifier = this.getClass.getSimpleName

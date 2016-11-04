@@ -6,8 +6,10 @@
   */
 package edu.illinois.cs.cogcomp.saul.classifier
 
-import edu.illinois.cs.cogcomp.saul.classifier.infer.{ ConstrainedClassifier, InitSparseNetwork }
+import edu.illinois.cs.cogcomp.saul.classifier.infer._
+import edu.illinois.cs.cogcomp.saul.datamodel.edge.Edge
 import edu.illinois.cs.cogcomp.saul.datamodel.node.Node
+import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
 import edu.illinois.cs.cogcomp.saul.util.Logging
 
 /** Utility functions for various operations (e.g. training, testing, saving, etc) on multiple classifiers.
@@ -184,5 +186,57 @@ object ClassifierUtils extends Logging {
     val avgResultList = perLabelResults.toList.map(resultToList).transpose.map(a => a.sum / perLabelResults.length)
     AverageResult(avgResultList(0), avgResultList(1), avgResultList(2))
   }
+
+
+  /** A bunch of methods to create constrained classifiers. Specifically in the most general form:
+    *    ClassifierUtils.Max(baseClassifier).subjectTo(constraint).filter(filterFunction).pathToHead(pathToHeadEdge).solver(solverName).get
+    * Simpler forms are possible too, for example:
+    *    ClassifierUtils.Max(baseClassifier).subjectTo(constraint).get
+    * */
+  /*
+  object Max {
+    def apply(baseClassifier: LBJLearnerEquivalent): ConstrainedClassifierTemporarySpec = ConstrainedClassifierTemporarySpec(baseClassifier, maximization = true)
+  }
+
+  object Min {
+    def apply(baseClassifier: LBJLearnerEquivalent): ConstrainedClassifierTemporarySpec = ConstrainedClassifierTemporarySpec(baseClassifier, maximization = false)
+  }
+
+  case class ConstrainedClassifierTemporarySpec(
+                                                 baseClassifier: LBJLearnerEquivalent,
+                                                 maximization: Boolean,
+                                                 constraintOpt: Option[Constraint[_]] = None,
+                                                 filterOpt: Option[(_, _) => Boolean] = None,
+                                                 pathToHeadOpt: Option[Edge[_, _]] = None,
+                                                 solverTypeOpt: Option[SolverType] = None
+                                               ) {
+    def get():ConstrainedClassifier[_, _] = {
+      object OrgConstrainedClassifier extends ConstrainedClassifier[_, _] {
+        override lazy val onClassifier = baseClassifier
+        override def pathToHead = pathToHeadOpt
+        override def subjectTo = constraintOpt
+        override def filter = filterOpt.getOrElse((_, _) => true)
+        override def solverType = solverTypeOpt.getOrElse(OJAlgo)
+        override def optimizationType = if(maximization) Max else Min
+      }
+    }
+
+    def subjectTo(constraint: Constraint[_]): ConstrainedClassifierTemporarySpec = {
+      ConstrainedClassifierTemporarySpec(baseClassifier, maximization, constraintOpt = Some(constraint), filterOpt, pathToHeadOpt, solverTypeOpt)
+    }
+
+    def filter(filterFunction: (_, _) => Boolean): ConstrainedClassifierTemporarySpec = {
+      ConstrainedClassifierTemporarySpec(baseClassifier, maximization, constraintOpt, filterOpt = Some(filterFunction), pathToHeadOpt, solverTypeOpt)
+    }
+
+    def pathToHead(pathToHeadEdge: Edge[_, _]): ConstrainedClassifierTemporarySpec = {
+      ConstrainedClassifierTemporarySpec(baseClassifier, maximization, constraintOpt, filterOpt, pathToHeadOpt = Some(pathToHeadEdge), solverTypeOpt)
+    }
+
+    def solver(solverType: SolverType): ConstrainedClassifierTemporarySpec = {
+      ConstrainedClassifierTemporarySpec(baseClassifier, maximization, constraintOpt, filterOpt, pathToHeadOpt, solverTypeOpt = Some(solverType))
+    }
+  }
+  */
 }
 

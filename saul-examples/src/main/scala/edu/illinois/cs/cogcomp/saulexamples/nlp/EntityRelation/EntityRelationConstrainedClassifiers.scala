@@ -6,8 +6,8 @@
   */
 package edu.illinois.cs.cogcomp.saulexamples.nlp.EntityRelation
 
-import edu.illinois.cs.cogcomp.saul.classifier.infer.ConstrainedClassifier
-import edu.illinois.cs.cogcomp.saulexamples.EntityMentionRelation.datastruct.{ ConllRawToken, ConllRelation }
+import edu.illinois.cs.cogcomp.saul.classifier.infer.{ConstrainedClassifier, OJAlgo}
+import edu.illinois.cs.cogcomp.saulexamples.EntityMentionRelation.datastruct.{ConllRawToken, ConllRelation}
 
 object EntityRelationConstrainedClassifiers {
   object OrgConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
