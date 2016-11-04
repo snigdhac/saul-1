@@ -63,7 +63,7 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
     ccgGroupId % "LBJava" % "1.2.25" withSources,
     ccgGroupId % "illinois-core-utilities" % cogcompNLPVersion withSources,
-    ccgGroupId % "illinois-inference" % "0.8.1" withSources,
+    ccgGroupId % "illinois-inference" % "0.9.0" withSources,
     "com.gurobi" % "gurobi" % "6.0",
     "org.apache.commons" % "commons-math3" % "3.0",
     "org.scalatest" % "scalatest_2.11" % "2.2.4",
