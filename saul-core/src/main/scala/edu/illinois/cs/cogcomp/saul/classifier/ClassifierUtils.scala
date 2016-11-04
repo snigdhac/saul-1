@@ -187,12 +187,11 @@ object ClassifierUtils extends Logging {
     AverageResult(avgResultList(0), avgResultList(1), avgResultList(2))
   }
 
-
   /** A bunch of methods to create constrained classifiers. Specifically in the most general form:
     *    ClassifierUtils.Max(baseClassifier).subjectTo(constraint).filter(filterFunction).pathToHead(pathToHeadEdge).solver(solverName).get
     * Simpler forms are possible too, for example:
     *    ClassifierUtils.Max(baseClassifier).subjectTo(constraint).get
-    * */
+    */
   /*
   object Max {
     def apply(baseClassifier: LBJLearnerEquivalent): ConstrainedClassifierTemporarySpec = ConstrainedClassifierTemporarySpec(baseClassifier, maximization = true)
