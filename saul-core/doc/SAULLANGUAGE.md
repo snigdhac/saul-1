@@ -82,15 +82,31 @@ object CONSTRAINED_CLASSIFIER extends ConstraintClassifier[INPUT_TYPE, HEAD_TYPE
 ```
 
 Here we describe each of the parameters in the above snippet: 
+
  - `CONSTRAINED_CLASSIFIER`: the name of your desired constrained classifier 
  - `INPUT_TYPE`: the input type of the desired constrained classifier 
- - `HEAD_TYPE`: 
- - `CLASSIFIER`: 
- - `CONSTRAINT`: 
+ - `HEAD_TYPE`: the inference starts from the head object. This type often subsumes `INPUT_TYPE`. For example if we define 
+    constraints over sentences while making predictions for each word, `INPUT_TYPE` would be a consituent type in the 
+    sentence, while `HEAD_TYPE` would be a sentential type. 
+ - `CLASSIFIER`: The base classifier based on which the confidence scores of the constrained inference problem is set. 
+ - `CONSTRAINT`: The constraint definition. For more details see the section below. 
  - `SOLVER`: The ILP solver machine used for the inference. Here are the possible values for `solverType`:
- - `PATH-TO-HEAD-EDGE`:
- - `filter`: 
+    - `OJAlgo`: The [OjAlgo solver](http://ojalgo.org/), an opensource solver.  
+    - `Gurobi`: Gurobi, a powerful industrial solver. 
+    - `Balas`: Egon Balas' zero-one ILP solving algorithm. It is a branch and bound algorithm that can return the best 
+    solution found so far if stopped early.  
+ More details can be found in the [`illinois-inference` package](https://gitlab-beta.engr.illinois.edu/cogcomp/inference/). 
+ - `PATH-TO-HEAD-EDGE`:  Returns only one object of type `HEAD_TYPE` given an instance of `INPUT_TYPE`; if there are many 
+            of them i.e. `Iterable[HEAD]` then it simply returns the head object.
+ - `filter`: The function is used to filter the generated candidates from the head object; remember that 
+         the inference starts from the head object. This function finds the objects of type `INPUT_TYPE` which are 
+         connected to the target object of type `HEAD_TYPE`. If we don't define `filter`, by default it returns all 
+         objects connected to `HEAD_TYPE`. The filter is useful for the `JointTraining` when we go over all 
+         global objects and generate all contained object that serve as examples for the basic classifiers involved in 
+         the `JoinTraining`. It is possible that we do not want to use all possible candidates but some of them, for 
+         example when we have a way to filter the negative candidates, this can come in the filter.
 
+Here is an example usage of this definition: 
 
 ```scala
 object OrgConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, ConllRelation] {
@@ -102,19 +118,69 @@ object OrgConstrainedClassifier extends ConstrainedClassifier[ConllRawToken, Con
 }
 ```
 
+In this example, the base (non-constrained) classifier is `OrganizationClassifier` which predicts whether the given instance 
+(of type `ConllRawToken`) is an organization or not. Since the constraints `relationArgumentConstraints` are defined over 
+triples (i.e two entities and the relation between them), the head type is defined as `ConllRelation` (which is 
+relatively more general than `ConllRawToken`). The filter function ensures that the head relation corresponds to the given 
+input entity token. 
 
 ### Constraints
 A "constraint" is a logical restriction over possible values that can be assigned to a number of variables;
 For example, a binary constraint could be `{if {A} then NOT {B}}`.
-In Saul, the constraints are defined for the assignments to class labels.
+In Saul, the constraints are defined for the assignments to class labels. In what follows we outine the details of operators 
+  which help us define the constraints: 
 
-This is done with the following construct
+#### Propositional constraint 
+  This defines constraint on the prediction of a classifier on a given instance. Here is the basic form. Consider an 
+   imaginary classifier `SomeClassifier` which returns `A` or  `B`. Here is how we create propositional constraint 
+   to force the prediction on instance `x` to have label `A`: 
+```  
+  SomeClassifier on x is "A"
+```  
 
-```scala
-val PersonWorkFor=ConstraintClassifier.constraintOf[ConllRelation] {
-  x:ConllRelation => {
-    ((workForClassifier on x) isTrue) ==> ((PersonClassifier on x.e1) isTrue)
-  }
+In the above definition, `on` and `is` are keywords. 
+
+Here different variations of this basic, but there are different variations to it: 
+
+ - If the label were `true` and `false`, one can use `isTrue` instead of `is "true"` (and similarily `isFalse` instead of `is "false"`). 
+ - If instead of equality you want to use inequality, you can use the keyword `isNot`, instead of `is`. 
+ - If you want to use the equality on multiple label values, you can use the `isOneOf(.)` keywors, instead of `is`. 
+
+
+#### Binary and Unary binary operators 
+
+One way of combining base logical rules is applying binary operations (for example conjunction, etc). 
+
+| Operator |  Name | Definition |  Example    |
+|----------|---------------|---------|------|
+| `and`    |  conjunction  | A binary operator to create a conjunction of the two constraints before and after it  |  `(SomeClassifier1 on x is "A1") and  (SomeClassifier2 on y is "A2")`  |
+| `or`     |  disjunction  | A binary operator to create a disjunction of the two constraints before and after it  |  `(SomeClassifier1 on x is "A1") or  (SomeClassifier2 on y is "A2")`    |
+|  `==>`   |  implication  | The implication operator, meaning that if the contraint before it is true, the constraint following it must be true as well  |  `(SomeClassifier1 on x is "A1") ==> (SomeClassifier2 on y is "A2")`  |
+|  `!`     |  negation     | A prefix unary operator to negate the effect of the constraint following it.  |   `!(SomeClassifier1 on x is "A1")`   |
+
+#### Collection operators 
+
+This operators distribute the definitions of the constraints over collections. Here are the definition and examples: 
+
+| Operator | Definition |  Example  |
+|----------|------------|---------|---|
+| `ForEach`  |  This operator works only on `Node`s. For each single instance in the node. This is often times one of the starting points for defining constraints. So if you are defining using a constrained classifier with head type `HEAD_TYPE`, we the definition of the constraint have to start with the node corresponding to this type.  |  `textAnnotationNode.ForEach { x: TextAnnotation => Some-Constraint-On-X }`   |     
+| `ForAll`   |  For **all** the elements in the collection it applies the constraints. In other words, the constrain should hold for **all** elements of the collection.   |  `textAnnotationNode.ForAll { x: TextAnnotation => Some-Constraint-On-x }`  |    
+| `Exists`    | The constrain should hold for **at least one** element of the collection.   |  `textAnnotationNode.Exists { x: TextAnnotation => Some-Constraint-On-x }` | 
+| `AtLest(k: Int)`  |  The constrain should hold for **at least `k`** elements of the collection.  |  `textAnnotationNode.AtLeast(2) { x: TextAnnotation => Some-Constraint-On-x }` |  
+| `AtMost(k: Int)`  |  The constrain should hold for **at most `k`** elements of the collection.  | `textAnnotationNode.AtMost(3) { x: TextAnnotation => Some-Constraint-On-x }`  | 
+| `Exactly(k: Int)`  | The constrain should hold for **exactly `k`** elements of the collection.  |  `textAnnotationNode.Exactly(3){ x: TextAnnotation => Some-Constraint-On-x }`  | 
+
+**Tip:** Except `ForEach` which is used only on nodes, all the above operators can be used as postfix operator on the list of constraints. For example: 
+
+```scala 
+val constraintCollection = for { 
+   // some complicated loop variables 
 }
+ yield someConstraint
+
+constraintCollection.ForAll 
 ```
 
+
+There are just the definitions of the operations. If you want to see real examples of the operators in actions see [the definitions of constraints for ER-example](https://github.com/IllinoisCogComp/saul/blob/master/saul-examples/src/main/scala/edu/illinois/cs/cogcomp/saulexamples/nlp/EntityRelation/EntityRelationConstraints.scala). 
