@@ -90,12 +90,12 @@ object RunningApps extends App with Logging {
         argumentTypeLearner.save()
 
       case "bTr" =>
-        argumentXuIdentifierGivenPredicate.modelDir = modelDir + expName
+        argumentXuIdentifierGivenApredicate.modelDir = modelDir + expName
         logger.info("Training argument identifier")
-        argumentXuIdentifierGivenPredicate.learn(100)
+        argumentXuIdentifierGivenApredicate.learn(100)
         logger.info("isArgument test results:")
-        argumentXuIdentifierGivenPredicate.test()
-        argumentXuIdentifierGivenPredicate.save()
+        argumentXuIdentifierGivenApredicate.test()
+        argumentXuIdentifierGivenApredicate.save()
 
       case "cTr" =>
         argumentTypeLearner.modelDir = modelDir + expName
@@ -114,12 +114,12 @@ object RunningApps extends App with Logging {
         predicateClassifier.test(predicates.getTestingInstances)
 
       case "eTr" =>
-        argumentXuIdentifierGivenPredicate.modelDir = modelDir + expName
+        argumentXuIdentifierGivenApredicate.modelDir = modelDir + expName
         logger.info("Training argument identifier...")
-        argumentXuIdentifierGivenPredicate.learn(100)
+        argumentXuIdentifierGivenApredicate.learn(100)
         logger.info("isArgument test results:")
-        argumentXuIdentifierGivenPredicate.test()
-        argumentXuIdentifierGivenPredicate.save()
+        argumentXuIdentifierGivenApredicate.test()
+        argumentXuIdentifierGivenApredicate.save()
 
       case "fTr" =>
         argumentTypeLearner.modelDir = modelDir + expName
@@ -131,8 +131,8 @@ object RunningApps extends App with Logging {
         argumentTypeLearner.save()
 
       case "pTr" =>
-        ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_bTr/", argumentXuIdentifierGivenPredicate)
-        val training = relations.getTrainingInstances.filter(x => argumentXuIdentifierGivenPredicate(x).equals("true"))
+        ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_bTr/", argumentXuIdentifierGivenApredicate)
+        val training = relations.getTrainingInstances.filter(x => argumentXuIdentifierGivenApredicate(x).equals("true"))
         argumentTypeLearner.modelDir = modelDir
         argumentTypeLearner.learn(100, training)
         logger.info("Test without pipeline:")
@@ -159,7 +159,7 @@ object RunningApps extends App with Logging {
     (testWithPipeline, testWithConstraints) match {
 
       case (true, true) =>
-        ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_bTr/", argumentXuIdentifierGivenPredicate)
+        ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_bTr/", argumentXuIdentifierGivenApredicate)
         ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_aTr/", argumentTypeLearner)
         argumentTypeLearner.test(
           prediction = typeArgumentPipeGivenGoldPredicateConstrained,
@@ -167,7 +167,7 @@ object RunningApps extends App with Logging {
         )
 
       case (true, false) =>
-        ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_bTr/", argumentXuIdentifierGivenPredicate)
+        ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_bTr/", argumentXuIdentifierGivenApredicate)
         ClassifierUtils.LoadClassifier(SRLConfigurator.SRL_JAR_MODEL_PATH.value + "/models_aTr/", argumentTypeLearner)
         argumentTypeLearner.test(
           prediction = typeArgumentPipeGivenGoldPredicate,

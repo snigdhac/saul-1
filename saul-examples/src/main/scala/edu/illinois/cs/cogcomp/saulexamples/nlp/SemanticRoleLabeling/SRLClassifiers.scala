@@ -39,7 +39,7 @@ object SRLClassifiers {
     override lazy val classifier = new SparseNetworkLearner()
   }
 
-  object argumentXuIdentifierGivenPredicate extends Learnable[Relation](relations, parameters) {
+  object argumentXuIdentifierGivenApredicate extends Learnable[Relation](relations, parameters) {
     def label = isArgumentXuGold
     override def feature = using(headwordRelation, syntacticFrameRelation, pathRelation,
       phraseTypeRelation, predPosTag, predLemmaR, linearPosition, argWordWindow, argPOSWindow,

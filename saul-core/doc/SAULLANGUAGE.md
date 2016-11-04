@@ -128,7 +128,12 @@ input entity token.
 A "constraint" is a logical restriction over possible values that can be assigned to a number of variables;
 For example, a binary constraint could be `{if {A} then NOT {B}}`.
 In Saul, the constraints are defined for the assignments to class labels. In what follows we outine the details of operators 
-  which help us define the constraints: 
+which help us define the constraints. Before jumping into the details, note that you have to have the folling import 
+in order to have the following operators work: 
+
+```scala 
+import edu.illinois.cs.cogcomp.saul.infer.Constraint._
+```
 
 #### Propositional constraint 
   This defines constraint on the prediction of a classifier on a given instance. Here is the basic form. Consider an 

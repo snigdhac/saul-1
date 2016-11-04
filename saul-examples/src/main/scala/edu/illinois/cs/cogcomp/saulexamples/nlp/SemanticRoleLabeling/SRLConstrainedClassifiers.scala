@@ -8,7 +8,7 @@ package edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling
 
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.{ Relation, TextAnnotation }
 import edu.illinois.cs.cogcomp.saul.classifier.infer.ConstrainedClassifier
-import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers.{ argumentTypeLearner, argumentXuIdentifierGivenPredicate }
+import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers.{ argumentTypeLearner, argumentXuIdentifierGivenApredicate }
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLConstraints._
 
 object SRLConstrainedClassifiers {
@@ -30,6 +30,6 @@ object SRLConstrainedClassifiers {
   object arg_IdentifyConstrainedClassifier extends ConstrainedClassifier[Relation, Relation] {
     override def subjectTo = Some(arg_IdentifierClassifier_Constraint)
     override def solverType = OJAlgo
-    override lazy val onClassifier = argumentXuIdentifierGivenPredicate
+    override lazy val onClassifier = argumentXuIdentifierGivenApredicate
   }
 }

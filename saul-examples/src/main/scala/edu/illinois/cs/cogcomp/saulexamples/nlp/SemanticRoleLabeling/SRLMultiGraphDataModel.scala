@@ -204,14 +204,14 @@ class SRLMultiGraphDataModel(parseViewName: String = null, frameManager: SRLFram
   }
 
   val isArgumentPrediction = property(relations, "isArgumentPrediction") {
-    x: Relation => argumentXuIdentifierGivenPredicate(x)
+    x: Relation => argumentXuIdentifierGivenApredicate(x)
   }
 
   val isArgumentPipePrediction = property(relations, "isArgumentPipePrediction") {
     x: Relation =>
       predicateClassifier(x.getSource) match {
         case "false" => "false"
-        case _ => argumentXuIdentifierGivenPredicate(x)
+        case _ => argumentXuIdentifierGivenApredicate(x)
 
       }
   }
@@ -225,7 +225,7 @@ class SRLMultiGraphDataModel(parseViewName: String = null, frameManager: SRLFram
     x: Relation =>
       val a: String = predicateClassifier(x.getSource) match {
         case "false" => "false"
-        case _ => argumentXuIdentifierGivenPredicate(x)
+        case _ => argumentXuIdentifierGivenApredicate(x)
       }
       val b = a match {
         case "false" => "false"
@@ -235,7 +235,7 @@ class SRLMultiGraphDataModel(parseViewName: String = null, frameManager: SRLFram
   }
   val typeArgumentPipeGivenGoldPredicate = property(relations) {
     x: Relation =>
-      val a: String = argumentXuIdentifierGivenPredicate(x) match {
+      val a: String = argumentXuIdentifierGivenApredicate(x) match {
         case "false" => "candidate"
         case _ => argumentTypeLearner(x)
       }
@@ -243,7 +243,7 @@ class SRLMultiGraphDataModel(parseViewName: String = null, frameManager: SRLFram
   }
   val typeArgumentPipeGivenGoldPredicateConstrained = property(relations) {
     x: Relation =>
-      val a: String = argumentXuIdentifierGivenPredicate(x) match {
+      val a: String = argumentXuIdentifierGivenApredicate(x) match {
         case "false" => "candidate"
         case _ => ArgTypeConstrainedClassifier(x)
       }
