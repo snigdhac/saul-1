@@ -33,4 +33,3 @@ object SRLConstrainedClassifiers {
     override lazy val onClassifier = argumentXuIdentifierGivenPredicate
   }
 }
-
