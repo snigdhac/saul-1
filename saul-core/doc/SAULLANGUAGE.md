@@ -153,7 +153,7 @@ One way of combining base logical rules is applying binary operations (for examp
 
 | Operator |  Name | Definition |  Example    |
 |----------|---------------|---------|------|
-| `and`    |  conjunction  | A binary operator to create a conjunction of the two constraints before and after it  |  ```(SomeClassifier1 on x is "A1") and  (SomeClassifier2 on y is "A2")```  |
+| `and`    |  conjunction  | A binary operator to create a conjunction of the two constraints before and after it  |  `(SomeClassifier1 on x is "A1") and  (SomeClassifier2 on y is "A2")`  |
 | `or`     |  disjunction  | A binary operator to create a disjunction of the two constraints before and after it  |  `(SomeClassifier1 on x is "A1") or  (SomeClassifier2 on y is "A2")`    |
 |  `==>`   |  implication  | The implication operator, meaning that if the contraint before it is true, the constraint following it must be true as well  |  `(SomeClassifier1 on x is "A1") ==> (SomeClassifier2 on y is "A2")`  |
 |  `!`     |  negation     | A prefix unary operator to negate the effect of the constraint following it.  |   `!(SomeClassifier1 on x is "A1")`   |
