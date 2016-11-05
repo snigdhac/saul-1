@@ -45,7 +45,7 @@ class ModelsTest extends FlatSpec with Matchers {
     println(scores)
     scores.perLabel.foreach { resultPerLabel =>
       resultPerLabel.label match {
-        case "A0" => resultPerLabel.f1 should be(0.93 +- 0.02)
+        case "A0" => resultPerLabel.f1 should be(0.90 +- 0.02)
         case "A1" => resultPerLabel.f1 should be(0.93 +- 0.02)
         case "A2" => resultPerLabel.f1 should be(0.85 +- 0.02)
         case _ => ""
