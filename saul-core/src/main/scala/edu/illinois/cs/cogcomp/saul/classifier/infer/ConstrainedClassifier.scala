@@ -6,6 +6,9 @@
   */
 package edu.illinois.cs.cogcomp.saul.classifier.infer
 
+import java.util.Date
+
+import edu.illinois.cs.cogcomp.core.io.LineIO
 import edu.illinois.cs.cogcomp.infer.ilp.{ GurobiHook, ILPSolver, OJalgoHook }
 import edu.illinois.cs.cogcomp.lbjava.classify.TestDiscrete
 import edu.illinois.cs.cogcomp.lbjava.infer.BalasHook
@@ -33,10 +36,12 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   protected def subjectTo: Option[Constraint[HEAD]] = None
 
   protected def solverType: SolverType = OJAlgo
+
   protected sealed trait OptimizationType
   protected case object Max extends OptimizationType
   protected case object Min extends OptimizationType
   protected def optimizationType: OptimizationType = Max
+
   private val inferenceManager = new InferenceManager()
 
   def getClassSimpleNameForClassifier = this.getClass.getSimpleName
@@ -91,13 +96,13 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
       val l = pathToHead.get.forward.neighborsOf(x).toSet.toSeq
       l.length match {
         case 0 =>
-          logger.error("Failed to find head")
+          logger.trace("Failed to find head")
           None
         case 1 =>
           logger.trace(s"Found head ${l.head} for child $x")
           Some(l.head)
         case _ =>
-          logger.error("Found too many heads; this is usually because some instances belong to multiple 'head's")
+          logger.trace("Found too many heads; this is usually because some instances belong to multiple 'head's")
           Some(l.head)
       }
     }
@@ -264,11 +269,31 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   def test(testData: Iterable[T] = null, outFile: String = null, outputGranularity: Int = 0, exclude: String = ""): Results = {
     val testReader = if (testData == null) deriveTestInstances else testData
     val tester = new TestDiscrete()
-    testReader.foreach { instance =>
-      val label = onClassifier.getLabeler.discreteValue(instance)
-      val prediction = build(instance)
-      tester.reportPrediction(prediction, label)
+    if (exclude.nonEmpty) tester.addNull(exclude)
+    testReader.zipWithIndex.foreach {
+      case (instance, idx) =>
+        val gold = onClassifier.getLabeler.discreteValue(instance)
+        val prediction = build(instance)
+        tester.reportPrediction(prediction, gold)
+
+        if (outputGranularity > 0 && idx % outputGranularity == 0) {
+          println(idx + " examples tested at " + new Date())
+        }
+
+        // Append the predictions to a file (if the outFile parameter is given)
+        if (outFile != null) {
+          try {
+            val line = "Example " + idx + "\tprediction:\t" + prediction + "\t gold:\t" + gold + "\t" + (if (gold.equals(prediction)) "correct" else "incorrect")
+            LineIO.append(outFile, line);
+          } catch {
+            case e: Exception => e.printStackTrace()
+          }
+        }
     }
+
+    println() // for an extra empty line
+    tester.printPerformance(System.out)
+
     val perLabelResults = tester.getLabels.map {
       label =>
         ResultPerLabel(label, tester.getF1(label), tester.getPrecision(label), tester.getRecall(label),
@@ -276,7 +301,6 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
     val overallResultArray = tester.getOverallStats()
     val overallResult = OverallResult(overallResultArray(0), overallResultArray(1), overallResultArray(2))
-    println("overallResult =" + overallResult)
     Results(perLabelResults, ClassifierUtils.getAverageResults(perLabelResults), overallResult)
   }
 }

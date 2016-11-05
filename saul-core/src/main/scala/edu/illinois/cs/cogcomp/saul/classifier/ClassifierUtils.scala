@@ -7,9 +7,7 @@
 package edu.illinois.cs.cogcomp.saul.classifier
 
 import edu.illinois.cs.cogcomp.saul.classifier.infer._
-import edu.illinois.cs.cogcomp.saul.datamodel.edge.Edge
 import edu.illinois.cs.cogcomp.saul.datamodel.node.Node
-import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
 import edu.illinois.cs.cogcomp.saul.util.Logging
 
 /** Utility functions for various operations (e.g. training, testing, saving, etc) on multiple classifiers.
@@ -21,48 +19,48 @@ object ClassifierUtils extends Logging {
     def apply[T <: AnyRef](c: (Learnable[T], Iterable[T])*) = {
       c.foreach {
         case (learner, trainInstances) =>
-          logger.info(evalSeparator)
-          logger.info("Training " + learner.getClassSimpleNameForClassifier)
+          println(evalSeparator)
+          println("Training " + learner.getClassSimpleNameForClassifier)
           learner.learn(10, trainInstances)
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
     }
 
     def apply[T <: AnyRef](iter: Integer, c: (Learnable[T], Iterable[T])*) = {
       c.foreach {
         case (learner, trainInstances) =>
-          logger.info(evalSeparator)
-          logger.info("Training " + learner.getClassSimpleNameForClassifier)
+          println(evalSeparator)
+          println("Training " + learner.getClassSimpleNameForClassifier)
           learner.learn(iter, trainInstances)
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
     }
 
     def apply[T <: AnyRef](iter: Integer, trainInstances: Iterable[T], c: (Learnable[T])*) = {
       c.foreach { learner =>
-        logger.info(evalSeparator)
-        logger.info("Training " + learner.getClassSimpleNameForClassifier)
+        println(evalSeparator)
+        println("Training " + learner.getClassSimpleNameForClassifier)
         learner.learn(iter, trainInstances)
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
     }
 
     def apply(iter: Integer, c: (Learnable[_])*)(implicit d1: DummyImplicit, d2: DummyImplicit) = {
       c.foreach { learner =>
-        logger.info(evalSeparator)
-        logger.info("Training " + learner.getClassSimpleNameForClassifier)
+        println(evalSeparator)
+        println("Training " + learner.getClassSimpleNameForClassifier)
         learner.learn(iter)
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
     }
 
     def apply(iter: Integer, c: List[Learnable[_]])(implicit d1: DummyImplicit, d2: DummyImplicit) = {
       c.foreach { learner =>
-        logger.info(evalSeparator)
-        logger.info("Training " + learner.getClassSimpleNameForClassifier)
+        println(evalSeparator)
+        println("Training " + learner.getClassSimpleNameForClassifier)
         learner.learn(iter)
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
     }
   }
 
@@ -71,72 +69,72 @@ object ClassifierUtils extends Logging {
     def apply[T <: AnyRef](c: (Learnable[T], Iterable[T])*): Seq[Results] = {
       val testResults = c.map {
         case (learner, testInstances) =>
-          logger.info(evalSeparator)
-          logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+          println(evalSeparator)
+          println("Evaluating " + learner.getClassSimpleNameForClassifier)
           learner.test(testInstances)
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
       testResults
     }
 
     def apply[T <: AnyRef](testInstances: Iterable[T], c: Learnable[T]*): Seq[Results] = {
       val testResults = c.map { learner =>
-        logger.info(evalSeparator)
-        logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+        println(evalSeparator)
+        println("Evaluating " + learner.getClassSimpleNameForClassifier)
         learner.test(testInstances)
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
       testResults
     }
 
     def apply(c: Learnable[_]*)(implicit d1: DummyImplicit, d2: DummyImplicit): Seq[Results] = {
       val testResults = c.map { learner =>
-        logger.info(evalSeparator)
-        logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+        println(evalSeparator)
+        println("Evaluating " + learner.getClassSimpleNameForClassifier)
         learner.test()
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
       testResults
     }
 
     def apply(c: List[Learnable[_]])(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit): Seq[Results] = {
       val testResults = c.map { learner =>
-        logger.info(evalSeparator)
-        logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+        println(evalSeparator)
+        println("Evaluating " + learner.getClassSimpleNameForClassifier)
         learner.test()
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
       testResults
     }
 
     def apply(c: ConstrainedClassifier[_, _]*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit): Seq[Results] = {
       val testResults = c.map { learner =>
-        logger.info(evalSeparator)
-        logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+        println(evalSeparator)
+        println("Evaluating " + learner.getClassSimpleNameForClassifier)
         learner.test()
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
       testResults
     }
 
     def apply[T <: AnyRef](testInstances: Iterable[T], c: ConstrainedClassifier[T, _]*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit): Seq[Results] = {
       val testResults = c.map { learner =>
-        logger.info(evalSeparator)
-        logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+        println(evalSeparator)
+        println("Evaluating " + learner.getClassSimpleNameForClassifier)
         learner.test(testInstances)
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
       testResults
     }
 
     def apply[T <: AnyRef](instanceClassifierPairs: (Iterable[T], ConstrainedClassifier[T, _])*)(implicit d1: DummyImplicit, d2: DummyImplicit, d3: DummyImplicit, d4: DummyImplicit): Seq[Results] = {
       val testResults = instanceClassifierPairs.map {
         case (testInstances, learner) =>
-          logger.info(evalSeparator)
-          logger.info("Evaluating " + learner.getClassSimpleNameForClassifier)
+          println(evalSeparator)
+          println("Evaluating " + learner.getClassSimpleNameForClassifier)
           learner.test(testInstances)
       }
-      logger.info(evalSeparator)
+      println(evalSeparator)
       testResults
     }
   }
