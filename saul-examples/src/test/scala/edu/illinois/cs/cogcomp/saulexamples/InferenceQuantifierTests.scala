@@ -8,11 +8,11 @@ package edu.illinois.cs.cogcomp.saulexamples
 
 import edu.illinois.cs.cogcomp.lbjava.learn.Learner
 import edu.illinois.cs.cogcomp.saul.classifier.infer.Constraint._
-import edu.illinois.cs.cogcomp.saul.classifier.infer.{ConstrainedClassifier, OJAlgo}
+import edu.illinois.cs.cogcomp.saul.classifier.infer.{ ConstrainedClassifier, OJAlgo }
 import edu.illinois.cs.cogcomp.saul.datamodel.DataModel
 import edu.illinois.cs.cogcomp.saul.lbjrelated.LBJLearnerEquivalent
-import edu.illinois.cs.cogcomp.saulexamples.setcover.{City, ContainsStation, Neighborhood, SetCoverSolverDataModel}
-import org.scalatest.{FlatSpec, Matchers}
+import edu.illinois.cs.cogcomp.saulexamples.setcover.{ City, ContainsStation, Neighborhood, SetCoverSolverDataModel }
+import org.scalatest.{ FlatSpec, Matchers }
 
 import scala.collection.JavaConversions._
 
