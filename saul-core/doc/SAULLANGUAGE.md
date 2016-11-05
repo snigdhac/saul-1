@@ -223,3 +223,15 @@ There are just the definitions of the operations. If you want to see real exampl
 prediction of the base classifier. Hence if you see the performance of the constrained classifier is very close to the performance 
 of the base classifier it's probably most of your inference problems are becoming infeasible. In such cases it is worth verifying 
 the correctness of your constraint definitions. 
+
+#### Common mistakes in using constrained classifiers 
+ - Not defining the constraints with `def` keyword (instead defining them with the `val` keyword). The `def` keyword 
+    makes the propositionalization of the constraints lazy, i.e. it waits until you call them and then they get 
+    evaluated. 
+ - If you face the following error: 
+ ```
+ requirement failed: The target value Some(SomeLabel) is not a valid value for classifier ClassifierName with the tag-set: Set(SomeTags)
+ ```
+ it often means that it is constraiend to have a label which it does not contain in output label lexicon. Another reason 
+ for this can be not loading the base classifier model properly. 
+ 

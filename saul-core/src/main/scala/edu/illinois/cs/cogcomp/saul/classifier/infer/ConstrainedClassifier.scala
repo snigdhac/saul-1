@@ -222,7 +222,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
       }
     } else {
       // if the instance doesn't involve in any constraints, it means that it's a simple non-constrained problem.
-      logger.info("getting the label with the highest score . . . ")
+      logger.trace("getting the label with the highest score . . . ")
       onClassifier.classifier.scores(t).highScoreValue()
     }
   }
