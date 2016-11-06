@@ -122,10 +122,14 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
   }
 
-  def cacheKey[U](u: U): String = u.toString
+  def getCacheKey[U](u: U): String = u.toString
 
   def getInstancesInvolvedInProblem(constraintsOpt: Option[Constraint[_]]): Option[Set[_]] = {
     constraintsOpt.map { constraint => getInstancesInvolved(constraint) }
+  }
+
+  def getClassifiersInvolvedInProblem(constraintsOpt: Option[Constraint[_]]): Option[Set[LBJLearnerEquivalent]] = {
+    constraintsOpt.map { constraint => getClassifiersInvolved(constraint) }
   }
 
   /** given a head instance, produces a constraint based off of it */
@@ -176,6 +180,45 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
   }
 
+  def getClassifiersInvolved(constraint: Constraint[_]): Set[LBJLearnerEquivalent] = {
+    constraint match {
+      case c: PropositionalEqualityConstraint[_] =>
+        Set(c.estimator)
+      case c: PairConjunction[_, _] =>
+        getClassifiersInvolved(c.c1) ++ getClassifiersInvolved(c.c2)
+      case c: PairDisjunction[_, _] =>
+        getClassifiersInvolved(c.c1) ++ getClassifiersInvolved(c.c2)
+      case c: Negation[_] =>
+        getClassifiersInvolved(c.p)
+      case c: AtLeast[_, _] =>
+        c.constraints.foldRight(Set[LBJLearnerEquivalent]()) {
+          case (singleConstraint, ins) =>
+            ins union getClassifiersInvolved(singleConstraint)
+        }
+      case c: AtMost[_, _] =>
+        c.constraints.foldRight(Set[LBJLearnerEquivalent]()) {
+          case (singleConstraint, ins) =>
+            ins union getClassifiersInvolved(singleConstraint)
+        }
+      case c: ForAll[_, _] =>
+        c.constraints.foldRight(Set[LBJLearnerEquivalent]()) {
+          case (singleConstraint, ins) =>
+            ins union getClassifiersInvolved(singleConstraint)
+        }
+      case c: Exactly[_, _] =>
+        c.constraints.foldRight(Set[LBJLearnerEquivalent]()) {
+          case (singleConstraint, ins) =>
+            ins union getClassifiersInvolved(singleConstraint)
+        }
+      case c: EstimatorPairEqualityConstraint[_] =>
+        Set(c.estimator1, c.estimator2Opt.get)
+      case c: InstancePairEqualityConstraint[_] =>
+        Set(c.estimator)
+      case c: Implication[_, _] =>
+        throw new Exception("this constraint should have been rewritten in terms of other constraints. ")
+    }
+  }
+
   private def build(head: HEAD, t: T)(implicit d: DummyImplicit): String = {
     val constraintsOpt = instantiateConstraintGivenInstance(head)
     println("constraintsOpt=")
@@ -183,32 +226,38 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     val instancesInvolved = getInstancesInvolvedInProblem(constraintsOpt)
     println("instances Involved=")
     println(instancesInvolved)
+    val classifiersInvolved = getClassifiersInvolvedInProblem(constraintsOpt)
     if (constraintsOpt.isDefined && instancesInvolved.get.isEmpty) {
       logger.warn("there are no instances associated with the constraints. It might be because you have defined " +
         "the constraints with 'val' modifier, instead of 'def'.")
     }
     println("InstancesInvolved: " + instancesInvolved)
-
     val instanceIsInvolvedInConstraint = instancesInvolved.exists { set =>
       set.exists {
         case x: T => x == t
         case everythingElse => false
       }
     }
+    val classifierIsInvolvedInProblem = classifiersInvolved.exists { classifierSet =>
+      classifierSet.exists {
+        case c => onClassifier == c
+        case everythingElse => false
+      }
+    }
     println("instanceIsInvolvedInConstraint: " + instanceIsInvolvedInConstraint)
-    if (instanceIsInvolvedInConstraint) {
+    if (instanceIsInvolvedInConstraint & classifierIsInvolvedInProblem) {
       /** The following cache-key is very important, as it defines what to and when to cache the results of the inference.
         * The first term encodes the instances involved in the constraint, after propositionalization, and the second term
         * contains pure definition of the constraint before any propositionalization.
         */
-      val mainCacheKey = instancesInvolved.map(cacheKey(_)).toSeq.sorted.mkString("*") + constraintsOpt
-      println("mainCacheKey = " + mainCacheKey)
-      println("inferenceManager.cachedResults.keySet = " + InferenceManager.cachedResults.keySet)
-      val resultOpt = InferenceManager.cachedResults.get(mainCacheKey)
+      val cacheKey = instancesInvolved.map(getCacheKey(_)).toSeq.sorted.mkString("*") + constraintsOpt //+ classifiersInvolved.map(_.map(_.toString).toSeq.sorted)
+      //      println("mainCacheKey = " + mainCacheKey)
+      //      println("inferenceManager.cachedResults.keySet = " + InferenceManager.cachedResults.keySet)
+      val resultOpt = InferenceManager.cachedResults.get(cacheKey)
       resultOpt match {
         case Some((cachedSolver, cachedClassifier, cachedEstimatorToSolverLabelMap)) =>
           println(">>>>>>>> getting the result from cache . . .")
-          getInstanceLabel(t, cachedSolver, cachedClassifier, cachedEstimatorToSolverLabelMap)
+          getInstanceLabel(t, cachedSolver, onClassifier, cachedEstimatorToSolverLabelMap)
         case None =>
           println(">>>>>>>> calculating the result again . . . ")
           // create a new solver instance
@@ -221,10 +270,10 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
           constraintsOpt.foreach { constraints =>
             val inequalities = inferenceManager.processConstraints(constraints, solver)
-            println("inequalities = ")
+            //            println("inequalities = ")
             inequalities.foreach { ineq =>
               solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
-              println(s"x: ${ineq.x.toSeq}, a: ${ineq.a.toSeq}, b: ${ineq.b}")
+              //              println(s"x: ${ineq.x.toSeq}, a: ${ineq.a.toSeq}, b: ${ineq.b}")
             }
           }
 
@@ -236,7 +285,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
             logger.warn("Instance not solved . . . ")
           }
 
-          InferenceManager.cachedResults.put(mainCacheKey, (solver, onClassifier, inferenceManager.estimatorToSolverLabelMap))
+          InferenceManager.cachedResults.put(cacheKey, (solver, onClassifier, inferenceManager.estimatorToSolverLabelMap))
 
           getInstanceLabel(t, solver, onClassifier, inferenceManager.estimatorToSolverLabelMap)
       }
@@ -250,7 +299,12 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   def getInstanceLabel(t: T, solver: ILPSolver,
     classifier: LBJLearnerEquivalent,
     estimatorToSolverLabelMap: mutable.Map[LBJLearnerEquivalent, mutable.Map[_, Seq[(Int, String)]]]): String = {
+    //    println("estimatorToSolverLabelMap keys = " + estimatorToSolverLabelMap.keySet)
+    //    println("classifier = " + classifier)
     val estimatorSpecificMap = estimatorToSolverLabelMap(classifier).asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
+    //    println("estimatorSpecificMap = " + estimatorSpecificMap)
+    //    println("t = " + t)
+    //    println("estimatorSpecificMap.get(t) = " + estimatorSpecificMap.get(t))
     estimatorSpecificMap.get(t) match {
       case Some(indexLabelPairs) =>
         val values = indexLabelPairs.map {
@@ -263,7 +317,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
             case (ind, label) if solver.getIntegerValue(ind) == 1.0 => label
           }.get
         } else {
-          onClassifier.classifier.scores(t).highScoreValue()
+          classifier.classifier.scores(t).highScoreValue()
         }
       case None => throw new Exception("instance is not cached ... weird! :-/ ")
     }
