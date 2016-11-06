@@ -59,16 +59,16 @@ class EntityRelationTests extends FlatSpec with Matchers {
       WorksForClassifier, LivesInClassifier, LocatedInClassifier, OrgBasedInClassifier
     )
     val personClassifierScore = PerConstrainedClassifier.test()
-    personClassifierScore.average.f1 should be > 0.8
-    personClassifierScore.overall.f1 should be > 0.8
+    personClassifierScore.perLabel.foreach(_.f1 should be > 0.8)
+    personClassifierScore.perLabel.foreach(_.f1 should be > 0.8)
 
     val orgConstrainedClassifierScore = OrgConstrainedClassifier.test()
-    orgConstrainedClassifierScore.average.f1 should be > 0.75
-    orgConstrainedClassifierScore.overall.f1 should be > 0.75
+    orgConstrainedClassifierScore.perLabel.foreach(_.f1 should be > 0.75)
+    orgConstrainedClassifierScore.perLabel.foreach(_.f1 should be > 0.75)
 
     val worksForClassifierScore = WorksForRelationConstrainedClassifier.test()
-    worksForClassifierScore.average.f1 should be > 0.9
-    worksForClassifierScore.overall.f1 should be > 0.9
+    worksForClassifierScore.perLabel.foreach(_.f1 should be > 0.9)
+    worksForClassifierScore.perLabel.foreach(_.f1 should be > 0.9)
   }
 
   "crossValidation on ER " should " work. " in {
