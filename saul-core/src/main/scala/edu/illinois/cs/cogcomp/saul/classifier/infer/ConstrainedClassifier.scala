@@ -73,7 +73,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
       .getOrElse(Iterable.empty)
   }
 
-  private def getCandidates(head: HEAD): Seq[T] = {
+  def getCandidates(head: HEAD): Seq[T] = {
     if (tType.equals(headType) || pathToHead.isEmpty) {
       Seq(head.asInstanceOf[T])
     } else {
