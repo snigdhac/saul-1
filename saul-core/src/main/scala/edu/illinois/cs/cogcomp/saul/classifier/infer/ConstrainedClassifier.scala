@@ -110,7 +110,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
   private def getSolverInstance: ILPSolver = solverType match {
     case OJAlgo => new OJalgoHook()
-    case Gurobi => new GurobiHook()
+    case Gurobi => new GurobiHook(3)
     case Balas => new BalasHook()
     case _ => throw new Exception("Hook not found! ")
   }
@@ -178,24 +178,39 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
   private def build(head: HEAD, t: T)(implicit d: DummyImplicit): String = {
     val constraintsOpt = instantiateConstraintGivenInstance(head)
+    println("constraintsOpt=")
+    println(constraintsOpt)
     val instancesInvolved = getInstancesInvolvedInProblem(constraintsOpt)
+    println("instances Involved=")
+    println(instancesInvolved)
     if (constraintsOpt.isDefined && instancesInvolved.get.isEmpty) {
       logger.warn("there are no instances associated with the constraints. It might be because you have defined " +
         "the constraints with 'val' modifier, instead of 'def'.")
     }
+    println("InstancesInvolved: " + instancesInvolved)
+
     val instanceIsInvolvedInConstraint = instancesInvolved.exists { set =>
       set.exists {
         case x: T => x == t
         case everythingElse => false
       }
     }
+    println("instanceIsInvolvedInConstraint: " + instanceIsInvolvedInConstraint)
     if (instanceIsInvolvedInConstraint) {
-      val mainCacheKey = instancesInvolved.map(cacheKey(_)).toSeq.sorted.mkString("*") + onClassifier.toString + constraintsOpt
-      val resultOpt = inferenceManager.cachedResults.get(mainCacheKey)
+      /** The following cache-key is very important, as it defines what to and when to cache the results of the inference.
+        * The first term encodes the instances involved in the constraint, after propositionalization, and the second term
+        * contains pure definition of the constraint before any propositionalization.
+        */
+      val mainCacheKey = instancesInvolved.map(cacheKey(_)).toSeq.sorted.mkString("*") + constraintsOpt
+      println("mainCacheKey = " + mainCacheKey)
+      println("inferenceManager.cachedResults.keySet = " + InferenceManager.cachedResults.keySet)
+      val resultOpt = InferenceManager.cachedResults.get(mainCacheKey)
       resultOpt match {
         case Some((cachedSolver, cachedClassifier, cachedEstimatorToSolverLabelMap)) =>
+          println(">>>>>>>> getting the result from cache . . .")
           getInstanceLabel(t, cachedSolver, cachedClassifier, cachedEstimatorToSolverLabelMap)
         case None =>
+          println(">>>>>>>> calculating the result again . . . ")
           // create a new solver instance
           val solver = getSolverInstance
           solver.setMaximize(optimizationType == Max)
@@ -206,17 +221,22 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
           constraintsOpt.foreach { constraints =>
             val inequalities = inferenceManager.processConstraints(constraints, solver)
+            println("inequalities = ")
             inequalities.foreach { ineq =>
               solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
+              println(s"x: ${ineq.x.toSeq}, a: ${ineq.a.toSeq}, b: ${ineq.b}")
             }
           }
 
           solver.solve()
+
+          solver.asInstanceOf[GurobiHook].printModelStatus()
+          solver.asInstanceOf[GurobiHook].printSolution()
           if (!solver.isSolved) {
             logger.warn("Instance not solved . . . ")
           }
 
-          inferenceManager.cachedResults.put(mainCacheKey, (solver, onClassifier, inferenceManager.estimatorToSolverLabelMap))
+          InferenceManager.cachedResults.put(mainCacheKey, (solver, onClassifier, inferenceManager.estimatorToSolverLabelMap))
 
           getInstanceLabel(t, solver, onClassifier, inferenceManager.estimatorToSolverLabelMap)
       }

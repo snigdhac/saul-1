@@ -13,17 +13,11 @@ import scala.collection._
 import scala.reflect.ClassTag
 
 class InferenceManager {
-
-  /** Contains cache of problems already solved. The key is the head object, which maps to instances and their
-    * predicted values in the output of inference
-    */
-  val cachedResults = mutable.Map[String, (ILPSolver, LBJLearnerEquivalent, mutable.Map[LBJLearnerEquivalent, mutable.Map[_, Seq[(Int, String)]]])]()
+  // a small number used in creation of exclusive inequalities
+  private val epsilon = 0.01
 
   // for each estimator, maps the label of the estimator, to the integer label of the solver
   val estimatorToSolverLabelMap = mutable.Map[LBJLearnerEquivalent, mutable.Map[_, Seq[(Int, String)]]]()
-
-  // a small number used in creation of exclusive inequalities
-  private val epsilon = 0.01
 
   // greater or equal to: ax >= b
   case class ILPInequalityGEQ(a: Array[Double], x: Array[Int], b: Double)
@@ -378,4 +372,11 @@ class InferenceManager {
     // add the variables back into the map
     estimatorToSolverLabelMap.put(estimator, estimatorScoresMap)
   }
+}
+
+object InferenceManager {
+  /** Contains cache of problems already solved. The key is the head object, which maps to instances and their
+    * predicted values in the output of inference
+    */
+  val cachedResults = mutable.Map[String, (ILPSolver, LBJLearnerEquivalent, mutable.Map[LBJLearnerEquivalent, mutable.Map[_, Seq[(Int, String)]]])]()
 }
