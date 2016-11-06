@@ -174,8 +174,8 @@ class InferenceTest extends FlatSpec with Matchers {
     val singleInstanceMustBeTrueInference = new DummyConstrainedInference(
       Some(singleInstanceMustBeTrue(instanceSet.head)), classifierNegativeScoreForTrue
     )
-    singleInstanceMustBeTrueInference.build(instanceSet.head) should be("true")
-    instanceSet.drop(1).foreach { ins => singleInstanceMustBeTrueInference.build(ins) should be("false") }
+    singleInstanceMustBeTrueInference(instanceSet.head) should be("true")
+    instanceSet.drop(1).foreach { ins => singleInstanceMustBeTrueInference(ins) should be("false") }
   }
 
   // single instance constraint
@@ -183,20 +183,20 @@ class InferenceTest extends FlatSpec with Matchers {
     val singleInstanceMustBeFalseInference = new DummyConstrainedInference(
       Some(singleInstanceMustBeFalse(instanceSet.head)), classifierPositiveScoreForTrue
     )
-    singleInstanceMustBeFalseInference.build(instanceSet.head) should be("false")
-    instanceSet.drop(1).foreach { ins => singleInstanceMustBeFalseInference.build(ins) should be("true") }
+    singleInstanceMustBeFalseInference(instanceSet.head) should be("false")
+    instanceSet.drop(1).foreach { ins => singleInstanceMustBeFalseInference(ins) should be("true") }
   }
 
   // all true
   "ForAllTrue " should " return all true instances" in {
     val allTrueInference = new DummyConstrainedInference(Some(forAllTrue), classifierPositiveScoreForTrue)
-    instanceSet.foreach { ins => allTrueInference.build(ins) should be("true") }
+    instanceSet.foreach { ins => allTrueInference(ins) should be("true") }
   }
 
   // all false
   "ForAllFalse " should " return all false instances" in {
     val allFalseInference = new DummyConstrainedInference(Some(forAllFalse), classifierPositiveScoreForTrue)
-    instanceSet.foreach { ins => allFalseInference.build(ins) should be("false") }
+    instanceSet.foreach { ins => allFalseInference(ins) should be("false") }
   }
 
   // for all one of the labels
@@ -204,7 +204,7 @@ class InferenceTest extends FlatSpec with Matchers {
     val forAllOneOfTheLabelsPositiveClassifierInference = new DummyConstrainedInference(
       Some(forAllOneOfTheLabelsPositiveClassifier), classifierPositiveScoreForTrue
     )
-    instanceSet.foreach { ins => forAllOneOfTheLabelsPositiveClassifierInference.build(ins) should be("true") }
+    instanceSet.foreach { ins => forAllOneOfTheLabelsPositiveClassifierInference(ins) should be("true") }
   }
 
   // for all one of the labels
@@ -212,222 +212,211 @@ class InferenceTest extends FlatSpec with Matchers {
     val forAllOneOfTheLabelsNegativeClassifierInference = new DummyConstrainedInference(
       Some(forAllOneOfTheLabelsNegativeClassifier), classifierPositiveScoreForTrue
     )
-    instanceSet.foreach { ins => forAllOneOfTheLabelsNegativeClassifierInference.build(ins) should be("true") }
+    instanceSet.foreach { ins => forAllOneOfTheLabelsNegativeClassifierInference(ins) should be("true") }
   }
 
   // all not false, should always return true
   "ForAllNotFalse " should " return all true instances" in {
     val allNotFalseInference = new DummyConstrainedInference(Some(forAllNotFalse), classifierPositiveScoreForTrue)
-    instanceSet.foreach { ins => allNotFalseInference.build(ins) should be("true") }
+    instanceSet.foreach { ins => allNotFalseInference(ins) should be("true") }
   }
 
   // all not true, should always return false
   "ForAllNotTrue " should " return all false instances" in {
     val allNotTrueInference = new DummyConstrainedInference(Some(forAllNotTrue), classifierPositiveScoreForTrue)
-    instanceSet.foreach { ins => allNotTrueInference.build(ins) should be("false") }
-    instanceSet.foreach { ins => info(allNotTrueInference.build(ins)) }
+    instanceSet.foreach { ins => allNotTrueInference(ins) should be("false") }
+    instanceSet.foreach { ins => info(allNotTrueInference(ins)) }
   }
 
   // exists true
   "ExistsTrue " should " return exactly one true when true weight is negative" in {
     val existOneTrueInference = new DummyConstrainedInference(Some(existsTrue), classifierNegativeScoreForTrue)
-    instanceSet.count { ins => existOneTrueInference.build(ins) == "true" } should be(1)
+    instanceSet.count { ins => existOneTrueInference(ins) == "true" } should be(1)
   }
 
   // exists false
   "ExistsFalse " should " return exactly one false when true weight is positive" in {
     val existOneFalseInference = new DummyConstrainedInference(Some(existsFalse), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => existOneFalseInference.build(ins) == "false" } should be(1)
+    instanceSet.count { ins => existOneFalseInference(ins) == "false" } should be(1)
   }
 
   // at least 2 true
   "AtLeast2True " should " return at least two true instance" in {
     val atLeastTwoTrueInference = new DummyConstrainedInference(Some(atLeastTrue(2)), classifierNegativeScoreForTrue)
-    instanceSet.count { ins => atLeastTwoTrueInference.build(ins) == "true" } should be(2)
+    instanceSet.count { ins => atLeastTwoTrueInference(ins) == "true" } should be(2)
   }
 
   // at least 2 false
   "AtLeast2False " should " return at least two false instance" in {
     val atLeastTwoFalseInference = new DummyConstrainedInference(Some(atLeastFalse(2)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => atLeastTwoFalseInference.build(ins) == "false" } should be(2)
+    instanceSet.count { ins => atLeastTwoFalseInference(ins) == "false" } should be(2)
   }
 
   // at least 3 true
   "AtLeast3True " should " return at least three true instance" in {
     val atLeastThreeTrueInference = new DummyConstrainedInference(Some(atLeastTrue(3)), classifierNegativeScoreForTrue)
-    instanceSet.count { ins => atLeastThreeTrueInference.build(ins) == "true" } should be(3)
+    instanceSet.count { ins => atLeastThreeTrueInference(ins) == "true" } should be(3)
   }
 
   // at least 3 false
   "AtLeast3False " should " return at least three false instance" in {
     val atLeastThreeFalseInference = new DummyConstrainedInference(Some(atLeastFalse(3)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => atLeastThreeFalseInference.build(ins) == "false" } should be >= 3
+    instanceSet.count { ins => atLeastThreeFalseInference(ins) == "false" } should be >= 3
   }
 
   // exactly 1 true
   "ExactlyOneTrue " should " return exactly one true instance" in {
     val exactlyOneTrue = new DummyConstrainedInference(Some(exatclyTrue(1)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => exactlyOneTrue.build(ins) == "true" } should be(1)
+    instanceSet.count { ins => exactlyOneTrue(ins) == "true" } should be(1)
   }
 
   // exactly 2 true
   "ExactlyTwoTrue " should " return exactly two true instances" in {
     val exactlyOneTrue = new DummyConstrainedInference(Some(exatclyTrue(2)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => exactlyOneTrue.build(ins) == "true" } should be(2)
+    instanceSet.count { ins => exactlyOneTrue(ins) == "true" } should be(2)
   }
 
   // exactly 3 true
   "ExactlyTwoTrue " should " return exactly three true instances" in {
     val exactlyOneTrue = new DummyConstrainedInference(Some(exatclyTrue(3)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => exactlyOneTrue.build(ins) == "true" } should be(3)
+    instanceSet.count { ins => exactlyOneTrue(ins) == "true" } should be(3)
   }
 
   // exactly 1 false
   "ExactlyOneFalse " should " return exactly one true instances" in {
     val exactlyOneFalse = new DummyConstrainedInference(Some(exatclyFalse(1)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => exactlyOneFalse.build(ins) == "false" } should be(1)
+    instanceSet.count { ins => exactlyOneFalse(ins) == "false" } should be(1)
   }
 
   // exactly 2 false
   "ExactlyTwoFalse " should " return exactly two true instances" in {
     val exactlyOneFalse = new DummyConstrainedInference(Some(exatclyFalse(2)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => exactlyOneFalse.build(ins) == "false" } should be(2)
+    instanceSet.count { ins => exactlyOneFalse(ins) == "false" } should be(2)
   }
 
   // exactly 3 false
   "ExactlyTwoFalse " should " return exactly three true instances" in {
     val exactlyOneFalse = new DummyConstrainedInference(Some(exatclyFalse(3)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => exactlyOneFalse.build(ins) == "false" } should be(3)
+    instanceSet.count { ins => exactlyOneFalse(ins) == "false" } should be(3)
   }
 
   // at most 2 true
   "AtMost " should " return at most two true instances" in {
     val atMostTwoTrueInference = new DummyConstrainedInference(Some(atMostTrue(1)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => atMostTwoTrueInference.build(ins) == "true" } should be(1)
+    instanceSet.count { ins => atMostTwoTrueInference(ins) == "true" } should be(1)
   }
 
   // at most 2 false
   "AtMost " should " return at most two false instances" in {
     val atMostTwoFalseInference = new DummyConstrainedInference(Some(atMostFalse(1)), classifierNegativeScoreForTrue)
-    instanceSet.count { ins => atMostTwoFalseInference.build(ins) == "false" } should be(1)
+    instanceSet.count { ins => atMostTwoFalseInference(ins) == "false" } should be(1)
   }
 
   // at most 3 true
   "AtMost " should " return at most three true instances" in {
     val atMostThreeTrueInference = new DummyConstrainedInference(Some(atMostTrue(3)), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => atMostThreeTrueInference.build(ins) == "true" } should be(3)
+    instanceSet.count { ins => atMostThreeTrueInference(ins) == "true" } should be(3)
   }
 
   // at most 3 false
   "AtMost " should " return at most three false instances" in {
     val atMostThreeFalseInference = new DummyConstrainedInference(Some(atMostFalse(3)), classifierNegativeScoreForTrue)
-    instanceSet.count { ins => atMostThreeFalseInference.build(ins) == "false" } should be(3)
+    instanceSet.count { ins => atMostThreeFalseInference(ins) == "false" } should be(3)
   }
 
   // negation of ForAllTrue
   "ForAllFalseWithNegation " should " all be false" in {
     val forAllFalseWithNegationInference = new DummyConstrainedInference(Some(forAllFalseWithNegation), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => forAllFalseWithNegationInference.build(ins) == "false" } should be(instanceSet.length)
+    instanceSet.count { ins => forAllFalseWithNegationInference(ins) == "false" } should be(instanceSet.length)
   }
 
   // negation of ForAllTrue
   "ForAllTrueNegated " should " contain at least one false" in {
     val forAllTrueNegatedInference = new DummyConstrainedInference(Some(forAllTrueNegated), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => forAllTrueNegatedInference.build(ins) == "false" } should be >= 1
+    instanceSet.count { ins => forAllTrueNegatedInference(ins) == "false" } should be >= 1
   }
 
   // conjunctions
   "AllTrueAllTrueConjunction " should " always be true" in {
     val allTrueAllTrueConjunctionInference = new DummyConstrainedInference(Some(allTrueAllTrueConjunction), classifierPositiveScoreForTrue)
-    instanceSet.forall { ins => allTrueAllTrueConjunctionInference.build(ins) == "true" } should be(true)
+    instanceSet.forall { ins => allTrueAllTrueConjunctionInference(ins) == "true" } should be(true)
   }
 
   "AllFalseAllTrueConjunction " should " always be false" in {
     val allFalseAllFalseConjunctionInference = new DummyConstrainedInference(Some(allFalseAllFalseConjunction), classifierPositiveScoreForTrue)
-    instanceSet.forall { ins => allFalseAllFalseConjunctionInference.build(ins) == "false" } should be(true)
-  }
-
-  "AllTrueAllFalseConjunction " should " always be infeasible" in {
-    //        val alltrueAlltrueConjunctionInference = new DummyConstrainedInference(Some(allTrueAllTrueConjunction),
-    //          classifierPositiveScoreForTrue)
-    //        instances.forall { ins => alltrueAlltrueConjunctionInference.build(ins) == "false" } should be(true)
-    // TODO: how to test this?
-  }
-
-  "AllFalseAllTrueConjunction " should " always be infeasible" in {
-    // TODO: how to test this?
+    instanceSet.forall { ins => allFalseAllFalseConjunctionInference(ins) == "false" } should be(true)
   }
 
   // disjunctions
   "AllTrueAllTrueDisjunction " should " always be true" in {
     val allTrueAllTrueDisjunctionInference = new DummyConstrainedInference(Some(allTrueAllTrueDisjunction), classifierPositiveScoreForTrue)
-    instanceSet.forall { ins => allTrueAllTrueDisjunctionInference.build(ins) == "true" } should be(true)
+    instanceSet.forall { ins => allTrueAllTrueDisjunctionInference(ins) == "true" } should be(true)
   }
 
   "AllFalseAllFalseDisjunction " should " always be false" in {
     val allFalseAllFalseDisjunctionInference = new DummyConstrainedInference(Some(allFalseAllFalseDisjunction), classifierPositiveScoreForTrue)
-    instanceSet.count { ins => allFalseAllFalseDisjunctionInference.build(ins) == "false" } should be(instanceSet.size)
+    instanceSet.count { ins => allFalseAllFalseDisjunctionInference(ins) == "false" } should be(instanceSet.size)
   }
 
   "AllTrueAllFalseDisjunction " should " always all be false, or should all be true" in {
     val allTrueAllFalseDisjunctionInference = new DummyConstrainedInference(Some(allTrueAllFalseDisjunction), classifierPositiveScoreForTrue)
-    (instanceSet.forall { ins => allTrueAllFalseDisjunctionInference.build(ins) == "false" } ||
-      instanceSet.forall { ins => allTrueAllFalseDisjunctionInference.build(ins) == "true" }) should be(true)
+    (instanceSet.forall { ins => allTrueAllFalseDisjunctionInference(ins) == "false" } ||
+      instanceSet.forall { ins => allTrueAllFalseDisjunctionInference(ins) == "true" }) should be(true)
   }
 
   "AllFalseAllTrueDisjunction " should " always all be false, or should all be true" in {
     val allFalseAllTrueDisjunctionInference = new DummyConstrainedInference(Some(allFalseAllTrueDisjunction), classifierPositiveScoreForTrue)
-    (instanceSet.forall { ins => allFalseAllTrueDisjunctionInference.build(ins) == "false" } ||
-      instanceSet.forall { ins => allFalseAllTrueDisjunctionInference.build(ins) == "true" }) should be(true)
+    (instanceSet.forall { ins => allFalseAllTrueDisjunctionInference(ins) == "false" } ||
+      instanceSet.forall { ins => allFalseAllTrueDisjunctionInference(ins) == "true" }) should be(true)
   }
 
   "classifiers with instance pair label equality constraint " should " have the same value for all instances" in {
     val classifierSameValueTwoInstancesInference = new DummyConstrainedInference(
       Some(allInstancesShouldBeTrue), classifierPositiveScoreForTrue
     )
-    instanceSet.forall { ins => classifierSameValueTwoInstancesInference.build(ins) == "true" }
+    instanceSet.forall { ins => classifierSameValueTwoInstancesInference(ins) == "true" }
   }
 
   "trueImpliesTrue " should "work" in {
     val classifierSameValueTwoInstancesInference = new DummyConstrainedInference(
       Some(trueImpliesTrue), classifierNegativeScoreForTrue
     )
-    classifierSameValueTwoInstancesInference.build(instanceSet(0)) == "true" &&
-      classifierSameValueTwoInstancesInference.build(instanceSet(1)) == "true"
+    classifierSameValueTwoInstancesInference(instanceSet(0)) == "true" &&
+      classifierSameValueTwoInstancesInference(instanceSet(1)) == "true"
   }
 
   "trueImpliesFalse " should "work" in {
     val classifierSameValueTwoInstancesInference = new DummyConstrainedInference(
       Some(trueImpliesFalse), classifierNegativeScoreForTrue
     )
-    classifierSameValueTwoInstancesInference.build(instanceSet(0)) == "true" &&
-      classifierSameValueTwoInstancesInference.build(instanceSet(1)) == "false"
+    classifierSameValueTwoInstancesInference(instanceSet(0)) == "true" &&
+      classifierSameValueTwoInstancesInference(instanceSet(1)) == "false"
   }
 
   "falseImpliesTrue " should "work" in {
     val classifierSameValueTwoInstancesInference = new DummyConstrainedInference(
       Some(falseImpliesTrue), classifierNegativeScoreForTrue
     )
-    classifierSameValueTwoInstancesInference.build(instanceSet(0)) == "false" &&
-      classifierSameValueTwoInstancesInference.build(instanceSet(1)) == "true"
+    classifierSameValueTwoInstancesInference(instanceSet(0)) == "false" &&
+      classifierSameValueTwoInstancesInference(instanceSet(1)) == "true"
   }
 
   "falseImpliesFalse " should "work" in {
     val classifierSameValueTwoInstancesInference = new DummyConstrainedInference(
       Some(falseImpliesFalse), classifierNegativeScoreForTrue
     )
-    classifierSameValueTwoInstancesInference.build(instanceSet(0)) == "false" &&
-      classifierSameValueTwoInstancesInference.build(instanceSet(1)) == "false"
+    classifierSameValueTwoInstancesInference(instanceSet(0)) == "false" &&
+      classifierSameValueTwoInstancesInference(instanceSet(1)) == "false"
   }
 
   "halfTrueHalfFalsePositiveClassifier" should " work properly" in {
     val halfTrueHalfFalsePositiveClassifierInference = new DummyConstrainedInference(
       Some(halfTrueHalfFalsePositiveClassifier), classifierPositiveScoreForTrue
     )
-    ((0 to instanceSet.size / 2).forall(i => halfTrueHalfFalsePositiveClassifierInference.build(instanceSet(i)) == "true") &&
-      ((instanceSet.size / 2 + 1) until instanceSet.size).forall(i => halfTrueHalfFalsePositiveClassifierInference.build(instanceSet(i)) == "false")) ||
-      ((0 to instanceSet.size / 2).forall(i => halfTrueHalfFalsePositiveClassifierInference.build(instanceSet(i)) == "false") &&
-        ((instanceSet.size / 2 + 1) until instanceSet.size).forall(i => halfTrueHalfFalsePositiveClassifierInference.build(instanceSet(i)) == "true"))
+    ((0 to instanceSet.size / 2).forall(i => halfTrueHalfFalsePositiveClassifierInference(instanceSet(i)) == "true") &&
+      ((instanceSet.size / 2 + 1) until instanceSet.size).forall(i => halfTrueHalfFalsePositiveClassifierInference(instanceSet(i)) == "false")) ||
+      ((0 to instanceSet.size / 2).forall(i => halfTrueHalfFalsePositiveClassifierInference(instanceSet(i)) == "false") &&
+        ((instanceSet.size / 2 + 1) until instanceSet.size).forall(i => halfTrueHalfFalsePositiveClassifierInference(instanceSet(i)) == "true"))
   }
 
   "conjunctionOfDisjunctions " should " work" in {
@@ -435,7 +424,7 @@ class InferenceTest extends FlatSpec with Matchers {
       Some(conjunctionOfDisjunction), classifierPositiveScoreForTrue
     )
     (0 to 2).count { i =>
-      conjunctionOfDisjunctionInference.build(instanceSet(i)) == "false"
+      conjunctionOfDisjunctionInference(instanceSet(i)) == "false"
     } should be(2)
   }
 
@@ -444,7 +433,7 @@ class InferenceTest extends FlatSpec with Matchers {
       Some(disjunctionOfConjunctions), classifierPositiveScoreForTrue
     )
     (0 to 2).count { i =>
-      disjunctionOfConjunctionsInference.build(instanceSet(i)) == "false"
+      disjunctionOfConjunctionsInference(instanceSet(i)) == "false"
     } should be(1)
   }
 }
