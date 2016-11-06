@@ -59,7 +59,7 @@ lazy val commonSettings = Seq(
     Resolver.mavenLocal,
     "CogcompSoftware" at "http://cogcomp.cs.illinois.edu/m2repo/"
   ),
-  javaOptions ++= List("-Xmx15g"),
+  javaOptions ++= List("-Xmx11g"),
   libraryDependencies ++= Seq(
     ccgGroupId % "LBJava" % "1.2.25" withSources,
     ccgGroupId % "illinois-core-utilities" % cogcompNLPVersion withSources,

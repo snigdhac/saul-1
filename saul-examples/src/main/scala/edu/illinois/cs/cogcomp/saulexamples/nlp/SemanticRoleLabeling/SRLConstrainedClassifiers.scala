@@ -7,7 +7,7 @@
 package edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling
 
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.{ Relation, TextAnnotation }
-import edu.illinois.cs.cogcomp.saul.classifier.infer.{ ConstrainedClassifier, OJAlgo }
+import edu.illinois.cs.cogcomp.saul.classifier.infer.{ ConstrainedClassifier, Gurobi }
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLClassifiers.{ argumentTypeLearner, argumentXuIdentifierGivenApredicate }
 import edu.illinois.cs.cogcomp.saulexamples.nlp.SemanticRoleLabeling.SRLConstraints._
 
@@ -16,20 +16,20 @@ object SRLConstrainedClassifiers {
 
   object ArgTypeConstrainedClassifier extends ConstrainedClassifier[Relation, TextAnnotation] {
     override def subjectTo = Some(allPredicateArgumentConstraints)
-    override def solverType = OJAlgo
+    override def solverType = Gurobi
     override lazy val onClassifier = argumentTypeLearner
     override val pathToHead = Some(-sentencesToRelations)
   }
 
-  object arg_Is_TypeConstrainedClassifier extends ConstrainedClassifier[Relation, Relation] {
+  object ArgIsTypeConstrainedClassifier extends ConstrainedClassifier[Relation, Relation] {
     override def subjectTo = Some(arg_IdentifierClassifier_Constraint)
-    override def solverType = OJAlgo
+    override def solverType = Gurobi
     override lazy val onClassifier = argumentTypeLearner
   }
 
-  object arg_IdentifyConstrainedClassifier extends ConstrainedClassifier[Relation, Relation] {
+  object ArgIdentifyConstrainedClassifier extends ConstrainedClassifier[Relation, Relation] {
     override def subjectTo = Some(arg_IdentifierClassifier_Constraint)
-    override def solverType = OJAlgo
+    override def solverType = Gurobi
     override lazy val onClassifier = argumentXuIdentifierGivenApredicate
   }
 }

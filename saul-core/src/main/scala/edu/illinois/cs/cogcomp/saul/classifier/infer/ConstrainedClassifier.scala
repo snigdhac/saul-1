@@ -34,8 +34,8 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
   def onClassifier: LBJLearnerEquivalent
   protected def subjectTo: Option[Constraint[HEAD]] = None
-
   protected def solverType: SolverType = OJAlgo
+  protected def useCaching: Boolean = true
 
   protected sealed trait OptimizationType
   protected case object Max extends OptimizationType
@@ -45,8 +45,6 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
   private val inferenceManager = new InferenceManager()
 
   def getClassSimpleNameForClassifier = this.getClass.getSimpleName
-
-  def apply(t: T): String = build(t)
 
   /** The function is used to filter the generated candidates from the head object; remember that the inference starts
     * from the head object. This function finds the objects of type [[T]] which are connected to the target object of
@@ -75,7 +73,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
       .getOrElse(Iterable.empty)
   }
 
-  def getCandidates(head: HEAD): Seq[T] = {
+  private def getCandidates(head: HEAD): Seq[T] = {
     if (tType.equals(headType) || pathToHead.isEmpty) {
       Seq(head.asInstanceOf[T])
     } else {
@@ -89,7 +87,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
   }
 
-  def findHead(x: T): Option[HEAD] = {
+  private def findHead(x: T): Option[HEAD] = {
     if (tType.equals(headType) || pathToHead.isEmpty) {
       Some(x.asInstanceOf[HEAD])
     } else {
@@ -108,6 +106,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
   }
 
+  /** given a solver type, instantiates a solver, uppon calling it */
   private def getSolverInstance: ILPSolver = solverType match {
     case OJAlgo => new OJalgoHook()
     case Gurobi => new GurobiHook()
@@ -115,25 +114,24 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     case _ => throw new Exception("Hook not found! ")
   }
 
-  def build(t: T): String = {
+  /** given an instance */
+  def apply(t: T): String = {
     findHead(t) match {
       case Some(head) => build(head, t)
       case None => onClassifier.classifier.discreteValue(t)
     }
   }
 
-  def getCacheKey[U](u: U): String = u.toString
-
-  def getInstancesInvolvedInProblem(constraintsOpt: Option[Constraint[_]]): Option[Set[_]] = {
+  private def getInstancesInvolvedInProblem(constraintsOpt: Option[Constraint[_]]): Option[Set[_]] = {
     constraintsOpt.map { constraint => getInstancesInvolved(constraint) }
   }
 
-  def getClassifiersInvolvedInProblem(constraintsOpt: Option[Constraint[_]]): Option[Set[LBJLearnerEquivalent]] = {
+  private def getClassifiersInvolvedInProblem(constraintsOpt: Option[Constraint[_]]): Option[Set[LBJLearnerEquivalent]] = {
     constraintsOpt.map { constraint => getClassifiersInvolved(constraint) }
   }
 
   /** given a head instance, produces a constraint based off of it */
-  def instantiateConstraintGivenInstance(head: HEAD): Option[Constraint[_]] = {
+  private def instantiateConstraintGivenInstance(head: HEAD): Option[Constraint[_]] = {
     // look at only the first level; if it is PerInstanceConstraint, replace it.
     subjectTo.map {
       case constraint: PerInstanceConstraint[HEAD] => constraint.sensor(head)
@@ -141,7 +139,8 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
   }
 
-  def getInstancesInvolved(constraint: Constraint[_]): Set[_] = {
+  /** find all the instances used in the definiton of the constraint. This is used in caching the results of inference  */
+  private def getInstancesInvolved(constraint: Constraint[_]): Set[_] = {
     constraint match {
       case c: PropositionalEqualityConstraint[_] =>
         Set(c.instanceOpt.get)
@@ -180,7 +179,8 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
   }
 
-  def getClassifiersInvolved(constraint: Constraint[_]): Set[LBJLearnerEquivalent] = {
+  /** find all the classifiers involved in the definition of the constraint. This is used for caching of inference */
+  private def getClassifiersInvolved(constraint: Constraint[_]): Set[LBJLearnerEquivalent] = {
     constraint match {
       case c: PropositionalEqualityConstraint[_] =>
         Set(c.estimator)
@@ -244,8 +244,8 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
         * The first term encodes the instances involved in the constraint, after propositionalization, and the second term
         * contains pure definition of the constraint before any propositionalization.
         */
-      val cacheKey = instancesInvolved.map(getCacheKey(_)).toSeq.sorted.mkString("*") + constraintsOpt //+ classifiersInvolved.map(_.map(_.toString).toSeq.sorted)
-      val resultOpt = InferenceManager.cachedResults.get(cacheKey)
+      val cacheKey = instancesInvolved.map(_.toString).toSeq.sorted.mkString("*") + constraintsOpt
+      val resultOpt = if (useCaching) InferenceManager.cachedResults.get(cacheKey) else None
       resultOpt match {
         case Some((cachedSolver, cachedClassifier, cachedEstimatorToSolverLabelMap)) =>
           getInstanceLabel(t, cachedSolver, onClassifier, cachedEstimatorToSolverLabelMap)
@@ -271,7 +271,9 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
             logger.warn("Instance not solved . . . ")
           }
 
-          InferenceManager.cachedResults.put(cacheKey, (solver, onClassifier, inferenceManager.estimatorToSolverLabelMap))
+          if (useCaching) {
+            InferenceManager.cachedResults.put(cacheKey, (solver, onClassifier, inferenceManager.estimatorToSolverLabelMap))
+          }
 
           getInstanceLabel(t, solver, onClassifier, inferenceManager.estimatorToSolverLabelMap)
       }
@@ -282,15 +284,13 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
   }
 
-  def getInstanceLabel(t: T, solver: ILPSolver,
+  /** given an instance, the result of the inference insidde an [[ILPSolver]], and a hashmap which connects
+    * classifier labels to solver's internal variables, returns a label for a given instance
+    */
+  private def getInstanceLabel(t: T, solver: ILPSolver,
     classifier: LBJLearnerEquivalent,
     estimatorToSolverLabelMap: mutable.Map[LBJLearnerEquivalent, mutable.Map[_, Seq[(Int, String)]]]): String = {
-    //    println("estimatorToSolverLabelMap keys = " + estimatorToSolverLabelMap.keySet)
-    //    println("classifier = " + classifier)
     val estimatorSpecificMap = estimatorToSolverLabelMap(classifier).asInstanceOf[mutable.Map[T, Seq[(Int, String)]]]
-    //    println("estimatorSpecificMap = " + estimatorSpecificMap)
-    //    println("t = " + t)
-    //    println("estimatorSpecificMap.get(t) = " + estimatorSpecificMap.get(t))
     estimatorSpecificMap.get(t) match {
       case Some(indexLabelPairs) =>
         val values = indexLabelPairs.map {
@@ -333,7 +333,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     testReader.zipWithIndex.foreach {
       case (instance, idx) =>
         val gold = onClassifier.getLabeler.discreteValue(instance)
-        val prediction = build(instance)
+        val prediction = apply(instance)
         tester.reportPrediction(prediction, gold)
 
         if (outputGranularity > 0 && idx % outputGranularity == 0) {

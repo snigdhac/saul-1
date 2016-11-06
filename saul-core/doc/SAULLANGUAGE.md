@@ -131,6 +131,9 @@ triples (i.e two entities and the relation between them), the head type is defin
 relatively more general than `ConllRawToken`). The filter function ensures that the head relation corresponds to the given 
 input entity token. 
 
+**Tip:** The constrained classifier is using in-memory caching to make the inference faster. If you want to turn off caching 
+    just include `override def useCaching = false` in body of the classifier definition. 
+
 ### Constraints
 A "constraint" is a logical restriction over possible values that can be assigned to a number of variables;
 For example, a binary constraint could be `{if {A} then NOT {B}}`.
