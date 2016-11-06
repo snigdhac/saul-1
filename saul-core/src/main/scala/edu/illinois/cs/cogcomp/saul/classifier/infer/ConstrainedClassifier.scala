@@ -248,10 +248,8 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
       val resultOpt = InferenceManager.cachedResults.get(cacheKey)
       resultOpt match {
         case Some((cachedSolver, cachedClassifier, cachedEstimatorToSolverLabelMap)) =>
-          //          println(">>>>>>>> getting the result from cache . . .")
           getInstanceLabel(t, cachedSolver, onClassifier, cachedEstimatorToSolverLabelMap)
         case None =>
-          //          println(">>>>>>>> calculating the result again . . . ")
           // create a new solver instance
           val solver = getSolverInstance
           solver.setMaximize(optimizationType == Max)
@@ -262,17 +260,13 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
 
           constraintsOpt.foreach { constraints =>
             val inequalities = inferenceManager.processConstraints(constraints, solver)
-            //            println("inequalities = ")
             inequalities.foreach { ineq =>
               solver.addGreaterThanConstraint(ineq.x, ineq.a, ineq.b)
-              //              println(s"x: ${ineq.x.toSeq}, a: ${ineq.a.toSeq}, b: ${ineq.b}")
             }
           }
 
           solver.solve()
 
-          //          solver.asInstanceOf[GurobiHook].printModelStatus()
-          //          solver.asInstanceOf[GurobiHook].printSolution()
           if (!solver.isSolved) {
             logger.warn("Instance not solved . . . ")
           }
@@ -330,7 +324,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     * @param exclude it is the label that we want to exclude for evaluation, this is useful for evaluating the multi-class
     * classifiers when we need to measure overall F1 instead of accuracy and we need to exclude the negative class
     * @param outFile The file to write the predictions (can be `null`)
-    * @return Seq of ???
+    * @return A [[Results]] object
     */
   def test(testData: Iterable[T] = null, outFile: String = null, outputGranularity: Int = 0, exclude: String = ""): Results = {
     val testReader = if (testData == null) deriveTestInstances else testData
@@ -357,7 +351,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
         }
     }
 
-    println() // for an extra empty line
+    println() // for an extra empty line, for visual convenience :)
     tester.printPerformance(System.out)
 
     val perLabelResults = tester.getLabels.map {
