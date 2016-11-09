@@ -150,7 +150,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
         getInstancesInvolved(c.c1) ++ getInstancesInvolved(c.c2)
       case c: Negation[_] =>
         getInstancesInvolved(c.p)
-      case c: ConstraintCollections[_] =>
+      case c: ConstraintCollections[_, _] =>
         c.constraints.foldRight(Set[Any]()) {
           case (singleConstraint, ins) =>
             ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
@@ -175,7 +175,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
         getClassifiersInvolved(c.c1) ++ getClassifiersInvolved(c.c2)
       case c: Negation[_] =>
         getClassifiersInvolved(c.p)
-      case c: ConstraintCollections[_] =>
+      case c: ConstraintCollections[_, _] =>
         c.constraints.foldRight(Set[LBJLearnerEquivalent]()) {
           case (singleConstraint, ins) =>
             ins union getClassifiersInvolved(singleConstraint)
