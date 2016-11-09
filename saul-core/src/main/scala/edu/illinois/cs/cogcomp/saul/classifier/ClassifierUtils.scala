@@ -19,48 +19,48 @@ object ClassifierUtils extends Logging {
     def apply[T <: AnyRef](c: (Learnable[T], Iterable[T])*) = {
       c.foreach {
         case (learner, trainInstances) =>
-          println(evalSeparator)
-          println("Training " + learner.getClassSimpleNameForClassifier)
+          logger.info(evalSeparator)
+          logger.info("Training " + learner.getClassSimpleNameForClassifier)
           learner.learn(10, trainInstances)
       }
-      println(evalSeparator)
+      logger.info(evalSeparator)
     }
 
     def apply[T <: AnyRef](iter: Integer, c: (Learnable[T], Iterable[T])*) = {
       c.foreach {
         case (learner, trainInstances) =>
-          println(evalSeparator)
-          println("Training " + learner.getClassSimpleNameForClassifier)
+          logger.info(evalSeparator)
+          logger.info("Training " + learner.getClassSimpleNameForClassifier)
           learner.learn(iter, trainInstances)
       }
-      println(evalSeparator)
+      logger.info(evalSeparator)
     }
 
     def apply[T <: AnyRef](iter: Integer, trainInstances: Iterable[T], c: (Learnable[T])*) = {
       c.foreach { learner =>
-        println(evalSeparator)
-        println("Training " + learner.getClassSimpleNameForClassifier)
+        logger.info(evalSeparator)
+        logger.info("Training " + learner.getClassSimpleNameForClassifier)
         learner.learn(iter, trainInstances)
       }
-      println(evalSeparator)
+      logger.info(evalSeparator)
     }
 
     def apply(iter: Integer, c: (Learnable[_])*)(implicit d1: DummyImplicit, d2: DummyImplicit) = {
       c.foreach { learner =>
-        println(evalSeparator)
-        println("Training " + learner.getClassSimpleNameForClassifier)
+        logger.info(evalSeparator)
+        logger.info("Training " + learner.getClassSimpleNameForClassifier)
         learner.learn(iter)
       }
-      println(evalSeparator)
+      logger.info(evalSeparator)
     }
 
     def apply(iter: Integer, c: List[Learnable[_]])(implicit d1: DummyImplicit, d2: DummyImplicit) = {
       c.foreach { learner =>
-        println(evalSeparator)
-        println("Training " + learner.getClassSimpleNameForClassifier)
+        logger.info(evalSeparator)
+        logger.info("Training " + learner.getClassSimpleNameForClassifier)
         learner.learn(iter)
       }
-      println(evalSeparator)
+      logger.info(evalSeparator)
     }
   }
 

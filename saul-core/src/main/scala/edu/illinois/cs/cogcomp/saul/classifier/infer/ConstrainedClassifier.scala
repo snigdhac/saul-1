@@ -150,22 +150,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
         getInstancesInvolved(c.c1) ++ getInstancesInvolved(c.c2)
       case c: Negation[_] =>
         getInstancesInvolved(c.p)
-      case c: AtLeast[_, _] =>
-        c.constraints.foldRight(Set[Any]()) {
-          case (singleConstraint, ins) =>
-            ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
-        }
-      case c: AtMost[_, _] =>
-        c.constraints.foldRight(Set[Any]()) {
-          case (singleConstraint, ins) =>
-            ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
-        }
-      case c: ForAll[_, _] =>
-        c.constraints.foldRight(Set[Any]()) {
-          case (singleConstraint, ins) =>
-            ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
-        }
-      case c: Exactly[_, _] =>
+      case c: ConstraintCollections[_] =>
         c.constraints.foldRight(Set[Any]()) {
           case (singleConstraint, ins) =>
             ins union getInstancesInvolved(singleConstraint).asInstanceOf[Set[Any]]
@@ -190,22 +175,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
         getClassifiersInvolved(c.c1) ++ getClassifiersInvolved(c.c2)
       case c: Negation[_] =>
         getClassifiersInvolved(c.p)
-      case c: AtLeast[_, _] =>
-        c.constraints.foldRight(Set[LBJLearnerEquivalent]()) {
-          case (singleConstraint, ins) =>
-            ins union getClassifiersInvolved(singleConstraint)
-        }
-      case c: AtMost[_, _] =>
-        c.constraints.foldRight(Set[LBJLearnerEquivalent]()) {
-          case (singleConstraint, ins) =>
-            ins union getClassifiersInvolved(singleConstraint)
-        }
-      case c: ForAll[_, _] =>
-        c.constraints.foldRight(Set[LBJLearnerEquivalent]()) {
-          case (singleConstraint, ins) =>
-            ins union getClassifiersInvolved(singleConstraint)
-        }
-      case c: Exactly[_, _] =>
+      case c: ConstraintCollections[_] =>
         c.constraints.foldRight(Set[LBJLearnerEquivalent]()) {
           case (singleConstraint, ins) =>
             ins union getClassifiersInvolved(singleConstraint)
@@ -230,13 +200,13 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     val instanceIsInvolvedInConstraint = instancesInvolved.exists { set =>
       set.exists {
         case x: T => x == t
-        case everythingElse => false
+        case _ => false
       }
     }
     val classifierIsInvolvedInProblem = classifiersInvolved.exists { classifierSet =>
       classifierSet.exists {
         case c => onClassifier == c
-        case everythingElse => false
+        case _ => false
       }
     }
     if (instanceIsInvolvedInConstraint & classifierIsInvolvedInProblem) {

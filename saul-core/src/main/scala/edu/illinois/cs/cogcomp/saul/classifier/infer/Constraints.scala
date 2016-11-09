@@ -234,19 +234,23 @@ case class PairDisjunction[T, U](c1: Constraint[T], c2: Constraint[U]) extends C
   def negate: Constraint[T] = new PairConjunction[T, U](c1.negate, c2.negate)
 }
 
-case class ForAll[T, U](constraints: Set[Constraint[U]]) extends Constraint[T] {
+sealed trait ConstraintCollections[T] extends Constraint[T] {
+  val constraints: Set[Constraint[T]]
+}
+
+case class ForAll[T, U](constraints: Set[Constraint[U]]) extends ConstraintCollections[T] {
   def negate: Constraint[T] = new ForAll[T, U](constraints.map(_.negate))
 }
 
-case class AtLeast[T, U](constraints: Set[Constraint[U]], k: Int) extends Constraint[T] {
+case class AtLeast[T, U](constraints: Set[Constraint[U]], k: Int) extends ConstraintCollections[T] {
   def negate: Constraint[T] = new AtMost[T, U](constraints, k)
 }
 
-case class AtMost[T, U](constraints: Set[Constraint[U]], k: Int) extends Constraint[T] {
+case class AtMost[T, U](constraints: Set[Constraint[U]], k: Int) extends ConstraintCollections[T] {
   def negate: Constraint[T] = new AtLeast[T, U](constraints, k)
 }
 
-case class Exactly[T, U](constraints: Set[Constraint[U]], k: Int) extends Constraint[T] {
+case class Exactly[T, U](constraints: Set[Constraint[U]], k: Int) extends ConstraintCollections[T] {
   def negate: Constraint[T] = new Exactly[T, U](constraints.map(_.negate), k)
 }
 
