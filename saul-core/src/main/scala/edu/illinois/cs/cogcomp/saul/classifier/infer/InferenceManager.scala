@@ -341,7 +341,7 @@ class InferenceManager {
         )
       case c: ForAll[V, Any] =>
         c.constraints.flatMap { processConstraints(_, solver) }
-      case c: Implication[_, _] =>
+      case _ =>
         throw new Exception("Saul implication is converted to other operations. ")
     }
   }

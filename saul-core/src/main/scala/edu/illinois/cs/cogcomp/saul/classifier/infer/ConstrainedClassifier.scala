@@ -159,8 +159,8 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
         Set(c.instance)
       case c: InstancePairEqualityConstraint[_] =>
         Set(c.instance1, c.instance2Opt.get)
-      case c: Implication[_, _] =>
-        throw new Exception("this constraint should have been rewritten in terms of other constraints. ")
+      case _ =>
+        throw new Exception("Unknown constraint exception! This constraint should have been rewritten in terms of other constraints. ")
     }
   }
 
@@ -184,8 +184,8 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
         Set(c.estimator1, c.estimator2Opt.get)
       case c: InstancePairEqualityConstraint[_] =>
         Set(c.estimator)
-      case c: Implication[_, _] =>
-        throw new Exception("this constraint should have been rewritten in terms of other constraints. ")
+      case _ =>
+        throw new Exception("Unknown constraint exception! This constraint should have been rewritten in terms of other constraints. ")
     }
   }
 
@@ -205,7 +205,7 @@ abstract class ConstrainedClassifier[T <: AnyRef, HEAD <: AnyRef](
     }
     val classifierIsInvolvedInProblem = classifiersInvolved.exists { classifierSet =>
       classifierSet.exists {
-        case c => onClassifier == c
+        case c: LBJLearnerEquivalent => onClassifier == c
         case _ => false
       }
     }
